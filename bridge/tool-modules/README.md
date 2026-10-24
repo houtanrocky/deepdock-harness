@@ -40,6 +40,14 @@ chains. Other modes retain the shell allowlist and blocked-command checks.
 The background service derives the policy from the saved selector; a model cannot
 select Full access by placing a policy value in its tool arguments.
 
+## Project instructions
+
+The `instructions.js` module also registers `dsh_instructions`. It accepts an
+optional `paths` array of workspace-relative files or directories and returns
+root-to-target `AGENTS.md` content, scopes, and hashes using the same guarded
+discovery as the harness's automatic instruction loader. Use it before shell
+commands and handoffs targeting a subdirectory. It is a read-only tool.
+
 ## Git and GitHub
 
 The `git.js` and `github.js` modules provide:

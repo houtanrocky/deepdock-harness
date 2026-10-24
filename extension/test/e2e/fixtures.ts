@@ -22,6 +22,8 @@ export class FixtureBridge {
   toolData = new Map<string, Record<string, unknown>>();
   toolErrors = new Map<string, { code: string; message: string; extra?: Record<string, unknown> }>();
   toolDelayMs = 0;
+  projectInstructions = false;
+  instructionFiles = new Map<string, string>();
   requests: string[] = [];
   handoffStatus = 'done';
   cancelled = false;
@@ -31,8 +33,20 @@ export class FixtureBridge {
     response.setHeader('Content-Type', 'application/json');
     const send = (data: unknown, status = 200) => { response.writeHead(status); response.end(JSON.stringify(data)); };
     if (request.headers.authorization !== `Bearer ${TOKEN}`) return send({ ok: false, error: { message: 'Invalid bridge token' } }, 401);
-    if (request.url === '/health') return send({ ok: true, name: 'dsh-pro', allowedRoots: ['C:/fixture', 'C:/second-workspace'], dsh: { binFound: true }, buildId: 'fixture-browser-build' });
+    if (request.url === '/health') return send({ ok: true, name: 'dsh-pro', allowedRoots: ['C:/fixture', 'C:/second-workspace'], dsh: { binFound: true }, buildId: 'fixture-browser-build', capabilities: { projectInstructions: this.projectInstructions } });
     if (request.url === '/tools') return send({ ok: true, tools: TOOL_DEFS });
+    if (request.url === '/instructions') {
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      const checkedFiles = new Set<string>(['AGENTS.md']);
+      for (const target of body.paths || ['.']) {
+        const parts = target.replaceAll('\\', '/').split('/').filter((part: string) => part && part !== '.');
+        for (let index = 1; index < parts.length; index++) checkedFiles.add(parts.slice(0, index).join('/') + '/AGENTS.md');
+      }
+      const instructions = [...checkedFiles].filter((file) => this.instructionFiles.has(file)).map((file) => ({ path: file, scope: file.includes('/') ? file.slice(0, file.lastIndexOf('/')) : '.', content: this.instructionFiles.get(file)!, sha256: this.instructionFiles.get(file)! }));
+      return send({ ok: true, data: { workspace: body.workspace || 'C:/fixture', instructions, checkedFiles: [...checkedFiles] } });
+    }
     if (request.url === '/tool') {
       const chunks = [];
       for await (const chunk of request) chunks.push(chunk);
@@ -42,6 +56,7 @@ export class FixtureBridge {
       const error = this.toolErrors.get(body.args.path || body.args.command || body.tool) || this.toolErrors.get(body.tool);
       if (error) return send({ ok: false, error }, error.code === 'E_TIMEOUT' ? 408 : 422);
       this.applied.push(body);
+      if (body.tool === 'dsh_write' && /(?:^|\/)AGENTS\.md$/.test(body.args.path)) this.instructionFiles.set(body.args.path, body.args.content);
       if (this.dropTools.has(body.tool)) { request.socket.destroy(); return; }
       if (this.toolDelayMs) await new Promise((resolve) => setTimeout(resolve, this.toolDelayMs));
       return send({ ok: true, data: this.toolData.get(body.tool) || (body.tool === 'dsh_handoff' ? { runId: 'fixture-run', timeoutMs: 30000 } : { content: 'tool result', sha256: 'fixture-hash' }) });
@@ -87,7 +102,8 @@ export const test = base.extend<Fixtures>({
     });
     try {
       const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-      await worker.evaluate((settings) => chrome.storage.local.set(settings), { token: TOKEN, baseUrl: bridge.baseUrl });
+      // Pacing scenarios override this; other tests isolate their own behavior.
+      await worker.evaluate((settings) => chrome.storage.local.set(settings), { token: TOKEN, baseUrl: bridge.baseUrl, toolResultDelaySeconds: 0 });
       const html = await readFile(new URL('../fixtures/deepseek-dom.html', import.meta.url), 'utf8');
       const semanticHtml = await readFile(new URL('../fixtures/semantic-chat.html', import.meta.url), 'utf8');
       await context.route('https://chat.deepseek.com/**', (route) => route.fulfill({

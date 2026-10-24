@@ -21,6 +21,7 @@ export const history = (() => {
   function project(entry, latestUser) {
     const common = { role: entry.role, ...(entry.workspace ? { workspace: entry.workspace } : {}), ...(entry.summary ? { summary: excerpt(entry.summary, 500) } : {}), ...(entry.tool_call_id ? { tool_call_id: entry.tool_call_id } : {}), ...(entry.tool ? { tool: entry.tool } : {}) };
     if (entry.kind === 'protocol') return null; // The live catalog is sent separately.
+    if (entry.role === 'assistant' && entry.deferred) return { ...common, kind: 'deferred-response', content: 'These proposed calls did not execute because new or changed project instructions needed review.' };
     if (entry.role === 'assistant' && entry.parseErrors?.length) return {
       ...common, kind: 'rejected-response', content: 'This response was rejected. No calls from this response executed.',
       parseErrors: entry.parseErrors.map((error) => ({ ...(error.code ? { code: error.code } : {}), message: excerpt(error.message, 1000) })),

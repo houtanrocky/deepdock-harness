@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add a configurable tool-result delay, defaulting to two seconds, with cancellable waiting and saved-result recovery on Resume.
+- Increase the default iteration limit to 30 while preserving explicitly saved limits.
+- Add `/init` to inspect a workspace or subproject and create or carefully update its `AGENTS.md`.
+- Automatically load and refresh applicable root and nested project instructions before coding actions, including after Resume.
+- Add the read-only `dsh_instructions` tool and preserve the agreed feature priorities in the development roadmap.
+
 ## 0.2.3 — 2026-10-24
 
 - Report excessive tool calls as a call-limit error and explain that the entire rejected response was not executed.

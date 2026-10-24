@@ -1,7 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeBridgeUrl } = require('../src/contracts.ts');
+const { DEFAULT_LOOP_LIMIT, DEFAULT_TOOL_RESULT_DELAY_SECONDS, normalizeBridgeUrl, normalizeToolResultDelaySeconds } = require('../src/contracts.ts');
 const { startBackground } = require('../src/background.js');
+
+test('pacing defaults and stored values preserve explicit zero and reject corrupt settings', () => {
+  assert.equal(DEFAULT_LOOP_LIMIT, 30);
+  assert.equal(DEFAULT_TOOL_RESULT_DELAY_SECONDS, 2);
+  for (const value of [undefined, null, '', '5', true, {}, NaN, Infinity, -1]) assert.equal(normalizeToolResultDelaySeconds(value), 2);
+  assert.equal(normalizeToolResultDelaySeconds(0), 0);
+  assert.equal(normalizeToolResultDelaySeconds(4.5), 4.5);
+  assert.equal(normalizeToolResultDelaySeconds(400), 300);
+});
 
 test('bridge addresses are canonical loopback HTTP origins', () => {
   assert.equal(normalizeBridgeUrl('http://127.0.0.1:8765/'), 'http://127.0.0.1:8765');

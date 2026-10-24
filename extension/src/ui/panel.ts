@@ -1,4 +1,4 @@
-import { PERMISSION_MODES, type PanelState } from '../contracts.ts';
+import { DEFAULT_LOOP_LIMIT, DEFAULT_TOOL_RESULT_DELAY_SECONDS, MAX_TOOL_RESULT_DELAY_SECONDS, PERMISSION_MODES, type PanelState } from '../contracts.ts';
 
 interface PanelActions {
   connect: () => Promise<void>;
@@ -48,8 +48,8 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
           <div class="dshpro-status-top"><span class="dshpro-eyebrow">AGENT STATUS</span><span class="dshpro-badge" id="dshpro-connection">OFFLINE</span></div>
           <div class="dshpro-phase" id="dshpro-phase" role="status" aria-live="polite">Disabled</div>
           <p class="dshpro-hint" id="dshpro-status-description">Connect your bridge to bring local tools into this chat.</p>
-          <div class="dshpro-budget"><span>Iteration budget</span><span id="dshpro-loops">0 / 15</span></div>
-          <progress id="dshpro-progress" max="15" value="15" aria-label="Iterations remaining"></progress>
+          <div class="dshpro-budget"><span>Iteration budget</span><span id="dshpro-loops">0 / ${DEFAULT_LOOP_LIMIT}</span></div>
+          <progress id="dshpro-progress" max="${DEFAULT_LOOP_LIMIT}" value="${DEFAULT_LOOP_LIMIT}" aria-label="Iterations remaining"></progress>
         </div>
         <div class="dshpro-actions">
           <button class="dshpro-btn primary" id="dshpro-enable">${icon('play')}<span>Enable agent</span></button>
@@ -64,7 +64,7 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
         </section>
         <div class="dshpro-config">
           <div class="dshpro-field"><label class="dshpro-label" for="dshpro-workspace">${icon('folder')}Workspace</label>
-            <select class="dshpro-select" id="dshpro-workspace"><option value="">Connect to load workspaces</option></select></div>
+            <select class="dshpro-select" id="dshpro-workspace"><option value="">Connect to load workspaces</option></select><p class="dshpro-field-hint">Send /init in chat to create project instructions in AGENTS.md.</p></div>
           <div class="dshpro-field"><label class="dshpro-label" for="dshpro-permissions">${icon('shield')}Permissions</label>
             <select class="dshpro-select" id="dshpro-permissions" aria-describedby="dshpro-permissions-description">
               ${Object.entries(PERMISSION_MODES).map(([value, mode]) => `<option value="${value}">${mode.label}</option>`).join('')}
@@ -86,7 +86,8 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
         <div class="dshpro-settings-heading"><h2>Settings</h2><p class="dshpro-hint">Connect your device. Tune how your agent runs.</p></div>
         <div class="dshpro-field"><label class="dshpro-label" for="dshpro-baseurl">Bridge address</label><input class="dshpro-input" id="dshpro-baseurl" type="url" value="http://127.0.0.1:8765" spellcheck="false" autocomplete="off" /><p class="dshpro-field-hint">Local HTTP bridge on this device.</p></div>
         <div class="dshpro-field"><label class="dshpro-label" for="dshpro-token">Bridge token</label><input class="dshpro-input" id="dshpro-token" type="password" placeholder="Paste the token from pair.ps1" autocomplete="off" spellcheck="false" /><p class="dshpro-field-hint">Stored in this extension. Never sent to the chat.</p></div>
-        <div class="dshpro-field"><label class="dshpro-label" for="dshpro-looplimit">Iteration limit</label><input class="dshpro-input" id="dshpro-looplimit" type="number" min="1" max="1000" /><p class="dshpro-field-hint">1–1000 rounds per task. Default: 15.</p></div>
+        <div class="dshpro-field"><label class="dshpro-label" for="dshpro-looplimit">Iteration limit</label><input class="dshpro-input" id="dshpro-looplimit" type="number" min="1" max="1000" /><p class="dshpro-field-hint">1–1000 rounds per task. Default: ${DEFAULT_LOOP_LIMIT}.</p></div>
+        <div class="dshpro-field"><label class="dshpro-label" for="dshpro-result-delay">Tool result delay (seconds)</label><input class="dshpro-input" id="dshpro-result-delay" type="number" min="0" max="${MAX_TOOL_RESULT_DELAY_SECONDS}" step="0.1" aria-describedby="dshpro-result-delay-hint" /><p class="dshpro-field-hint" id="dshpro-result-delay-hint">Extra wait before sending tool results, followed by the 2-second cancel preview. 0–${MAX_TOOL_RESULT_DELAY_SECONDS} seconds. Default: ${DEFAULT_TOOL_RESULT_DELAY_SECONDS}.</p></div>
         <details class="dshpro-advanced"><summary>Advanced selectors</summary><label class="dshpro-label" for="dshpro-sel">Custom selectors (JSON)</label><textarea class="dshpro-input" id="dshpro-sel" rows="3" placeholder='{"input":"textarea#chat-input"}' spellcheck="false"></textarea><p class="dshpro-field-hint">Override selectors when the DeepSeek layout changes.</p></details>
         <button class="dshpro-btn primary dshpro-save" id="dshpro-save">Save settings</button>
         <p class="dshpro-field-hint" id="dshpro-settings-feedback" role="status" aria-live="polite"></p>

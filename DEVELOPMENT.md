@@ -22,6 +22,7 @@ WXT launches a development browser and reloads the extension when source changes
 | `extension/src/ui/` | Typed panel components and scoped CSS |
 | `extension/public/icons/` | Static extension assets copied by WXT |
 | `bridge/tool-modules/` | Local Git and GitHub tool implementations |
+| `bridge/project-instructions.js` | Guarded discovery of scoped `AGENTS.md` files |
 | `extension/test/` | Node regressions, browser tests, and chat fixtures |
 
 The harness and adapter are ordinary ES modules with explicit dependencies. Unit tests import the same factories as the WXT entrypoints; they do not edit source strings to reach private functions. The retained JavaScript modules support gradual TypeScript adoption. Type checking currently covers WXT configuration, entrypoints, shared contracts, and the panel. Bridge modules remain CommonJS under `bridge/package.json`.
@@ -42,6 +43,34 @@ The harness and adapter are ordinary ES modules with explicit dependencies. Unit
 | `npm run zip` | Create a distributable extension ZIP in `.output/` |
 
 The public project site is a buildless page in `docs/`, published from `main` by `.github/workflows/pages.yml` to GitHub Pages. Keep its release links, privacy policy, and screenshots aligned with the release. `docs/assets/social-card.svg` is the source for the PNG social preview. GitHub Actions runs Windows regressions and Chromium integration checks on pushes and pull requests.
+
+Read [the coding workflow roadmap](docs/DEVELOPMENT-ROADMAP.md) before planning new features, and keep its implementation status current.
+
+## Project instructions and initialization
+
+The chat command `/init` starts an agent task to inspect the selected workspace
+and create or carefully update `AGENTS.md`; `/init relative/project` targets a
+subproject. It uses the existing file tools, permissions, history, and Resume
+behavior. Existing guidance is loaded before generation and must be preserved.
+
+The bridge advertises `capabilities.projectInstructions` and serves guarded,
+read-only discovery through `POST /instructions` and the registered
+`dsh_instructions` tool. The harness refreshes root and previously discovered
+guidance before prompts and checks paths from proposed tools before execution.
+When new or changed rules are discovered, the whole proposed response is deferred
+for model review, with no tools executed and no parse retry consumed. The exact
+proposal remains saved, and compact history labels it unexecuted.
+
+Guidance is included separately from compacted history and is reloaded on Resume.
+Nested rules apply to their directory subtree; deeper rules override conflicting
+ancestor rules there. Discovery never walks above an authorized workspace or
+recursively searches it. Limits are 24 KiB per file and 48 KiB per discovery
+request; oversized, binary, escaped, or unreadable instructions pause the task
+instead of silently dropping rules. Prompt budgeting reserves room for guidance.
+Ask every time requires approval for automatic instruction reads. Explicit
+subdirectory shell/handoff work first uses `dsh_instructions`, since the harness
+does not infer working directories from shell text. Older bridges keep the
+file-tool workflow and report that automatic loading requires an update.
 
 Browser tests load the production build in a temporary browser profile. They use actual extension storage, messaging, alarms, and service workers, with local chat fixtures and an authenticated HTTP fixture bridge on an ephemeral loopback port. They never contact DeepSeek, use your bridge configuration, execute your local tools, or publish repositories. Traces and screenshots for failed tests are in `test-results/`; the panel test also captures desktop and mobile screenshots on success.
 

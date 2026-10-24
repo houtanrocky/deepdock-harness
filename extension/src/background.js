@@ -78,7 +78,7 @@ export function startBackground(browser, dependencies = {}) {
     const target = baseUrl.replace(/\/$/, '') + path;
     // Only reads can be retried: a dropped POST response may follow a successful
     // write or command. A new request could execute that operation twice.
-    const readOnly = method === 'GET';
+    const readOnly = method === 'GET' || (method === 'POST' && path === '/instructions');
     const attempts = readOnly ? 3 : 1;
     for (let attempt = 0; attempt < attempts; attempt++) {
       const controller = readOnly ? new AbortController() : null;

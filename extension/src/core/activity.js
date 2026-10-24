@@ -52,7 +52,7 @@ export function activityView(entries = [], { activeRunId, approval = false } = {
     } else if (entry.role === 'user') {
       rows.push({ key, kind: 'user', title: 'You', text: entry.content || '', timestamp: entry.timestamp });
     } else if (entry.role === 'assistant') {
-      if (entry.parseErrors?.length) return;
+      if (entry.parseErrors?.length || entry.deferred) return;
       if (!entry.tool_calls?.length && protocol.parse(entry.raw || entry.content || '').errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
         rows.push({ key, kind: 'recovery', title: 'Unexecuted native tool markup', text: 'This saved response used unsupported tool markup. Review the recorded tool results for actions that actually ran.', detail: entry.content, timestamp: entry.timestamp });
         return;
@@ -61,6 +61,8 @@ export function activityView(entries = [], { activeRunId, approval = false } = {
       const calls = entry.tool_calls || parsed?.calls || [];
       const text = calls.length ? entry.narration ?? parsed?.narration ?? '' : (entry.content || '').replace(/^DSH:DONE[:：]\s*/i, '');
       if (text.trim() && !/^protocol understood\.?$/i.test(text.trim())) rows.push({ key, kind: 'assistant', title: calls.length ? 'Assistant update' : 'Assistant', text, timestamp: entry.timestamp });
+    } else if (entry.kind === 'instructions-update') {
+      rows.push({ key, kind: 'recovery', title: 'Project instructions updated', text: entry.content, timestamp: entry.timestamp });
     } else if (entry.kind === 'parse-error') {
       rows.push({ key, kind: 'recovery', title: 'Response rejected · retry ' + (entry.retryCount || 1), text: 'No calls from this response executed. The harness requested a corrected response.', detail: entry.content, timestamp: entry.timestamp });
     }

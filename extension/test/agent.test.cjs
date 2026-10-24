@@ -5,7 +5,11 @@ const { startBackground } = require('../src/background.js');
 const { createHarness } = require('../src/harness.js');
 const { randomUUID } = require('node:crypto');
 const { protocol } = require('../src/core/protocol.js');
-const { TOOL_DEFS } = require('../../bridge/tools');
+const { TOOL_DEFS, runTool } = require('../../bridge/tools');
+const { readProjectInstructions } = require('../../bridge/project-instructions');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const call = (tool, args = {}) => protocol.OPEN + JSON.stringify({ tool, args }) + protocol.CLOSE;
 const url = 'https://chat.deepseek.com/a/chat/s/test';
@@ -54,12 +58,14 @@ function contentHarness(responses = [], options = {}) {
   const api = createHarness({ browser: background.chrome, ports, platform: {
     document: { getElementById: (id) => nodes.get(id) || null, createElement: () => ({}) },
     location: new URL(url), AbortController, crypto: { randomUUID },
-    setTimeout, clearTimeout, setInterval, clearInterval, console,
+    setTimeout: options.platformSetTimeout || setTimeout, clearTimeout: options.platformClearTimeout || clearTimeout, setInterval, clearInterval, console,
   } });
   const sent = [];
   api.state.tools = { tools: TOOL_DEFS };
   api.state.health = { allowedRoots: ['C:/workspace'], dsh: { binFound: true } };
   api.state.enabled = true;
+  // Most fixtures isolate transport behavior; pacing tests below own their clock.
+  api.state.toolResultDelaySeconds = options.toolResultDelaySeconds ?? 0;
   ports.send = async (text, run) => {
     if (run.controller.signal.aborted) throw Object.assign(new Error('Task stopped'), { code: 'E_STOPPED' });
     sent.push(text);
@@ -69,6 +75,251 @@ function contentHarness(responses = [], options = {}) {
   };
   return { ...api, ...background, nodes, sent, setTransport: (fn) => { ports.send = fn; }, setBridge: (fn) => { ports.bridge = fn; }, saved: () => background.local['dshpro:conversation:' + url] };
 }
+
+test('tool feedback waits for the configured delay after results are saved, with no delay on the initial task', async () => {
+  for (const seconds of [2, 4.5]) {
+    const timers = [];
+    let finishDelay;
+    const h = contentHarness([call('dsh_read', { path: 'a.txt' }), 'Read completed.'], {
+      toolResultDelaySeconds: seconds,
+      platformSetTimeout(callback, ms) { timers.push(ms); finishDelay = callback; return 1; },
+      platformClearTimeout() {},
+    });
+    const pending = h.startRun({ task: 'Read a file' });
+    await new Promise(setImmediate);
+    assert.deepEqual(timers, [seconds * 1000]);
+    assert.equal(h.sent.length, 1);
+    assert.equal(h.saved().stage, 'cooldown');
+    assert.equal(h.saved().iterationCount, 1);
+    assert.equal(h.saved().pendingToolResults, true);
+    assert.equal(h.saved().conversationHistory.filter((entry) => entry.role === 'tool').length, 1);
+    finishDelay();
+    await pending;
+    assert.equal(h.sent.length, 2);
+    assert.equal(h.saved().stage, 'completed');
+    assert.equal(h.saved().pendingToolResults, false);
+  }
+});
+
+test('zero disables the extra result wait', async () => {
+  const h = contentHarness([call('dsh_read', { path: 'a.txt' }), 'Read completed.'], {
+    toolResultDelaySeconds: 0, platformSetTimeout() { assert.fail('A disabled result delay must not schedule a timer'); },
+  });
+  await h.startRun({ task: 'Read a file' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(h.sent.length, 2);
+});
+
+test('Stop cancels the result wait and Resume delays feedback without replaying the tool', async () => {
+  const timers = [];
+  let finishDelay;
+  const h = contentHarness([call('dsh_read', { path: 'read-once.txt' }), 'Completed after Resume.'], {
+    toolResultDelaySeconds: 2,
+    platformSetTimeout(callback, ms) { timers.push(ms); finishDelay = callback; return timers.length; },
+    platformClearTimeout() {},
+  });
+  const pending = h.startRun({ task: 'Read a file once' });
+  await new Promise(setImmediate);
+  assert.equal(h.saved().stage, 'cooldown');
+  await h.doStop();
+  await pending;
+  assert.equal(h.sent.length, 1);
+  assert.equal(h.saved().pendingToolResults, true);
+  assert.equal(h.saved().stage, 'stopped');
+  const resumed = h.startRun({ resume: true });
+  await new Promise(setImmediate);
+  assert.deepEqual(timers, [2000, 2000]);
+  assert.equal(h.sent.length, 1);
+  finishDelay();
+  await resumed;
+  assert.equal(h.requests.filter((request) => request.body?.tool === 'dsh_read').length, 1);
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(h.saved().iterationCount, 2);
+});
+
+test('older checkpoints with unreported tool results receive the delay on Resume', async () => {
+  let finishDelay;
+  const h = contentHarness(['Reviewed the saved result.'], {
+    toolResultDelaySeconds: 2,
+    platformSetTimeout(callback, ms) { assert.equal(ms, 2000); finishDelay = callback; return 1; },
+    platformClearTimeout() {},
+  });
+  h.local['dshpro:conversation:' + url] = { revision: 0, iterationCount: 1, inProgress: true, conversationHistory: [
+    { role: 'user', content: 'Read a file' },
+    { role: 'assistant', tool_calls: [{ tool: 'dsh_read', args: { path: 'read-once.txt' } }] },
+    { role: 'tool', tool: 'dsh_read', result: { ok: true, data: { content: 'Already read' } } },
+  ] };
+  const resumed = h.startRun({ resume: true });
+  await new Promise(setImmediate);
+  assert.equal(h.sent.length, 0);
+  assert.equal(h.saved().pendingToolResults, true);
+  finishDelay();
+  await resumed;
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.saved().stage, 'completed');
+});
+
+function projectHarness(t, responses) {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-project-harness-'));
+  t.after(() => {
+    assert.equal(path.dirname(workspace), os.tmpdir());
+    assert.ok(path.basename(workspace).startsWith('dsh-project-harness-'));
+    fs.rmSync(workspace, { recursive: true, force: true });
+  });
+  const h = contentHarness(responses);
+  const config = { allowedRoots: [workspace] };
+  h.state.workspace = workspace;
+  h.state.health = { allowedRoots: [workspace], capabilities: { projectInstructions: true } };
+  const seen = [];
+  const respond = async (method, route, body) => {
+    try {
+      if (route === '/instructions') return { status: 200, json: { ok: true, data: readProjectInstructions(config, body.workspace, body.paths) } };
+      seen.push(body);
+      return { status: 200, json: { ok: true, data: await runTool(body.tool, body.args, { config, workspace: body.workspace, confirmed: true }) } };
+    } catch (error) { return { status: 400, json: { ok: false, error: { code: error.code, message: error.message } } }; }
+  };
+  h.setBridge(respond);
+  function write(file, content) {
+    fs.mkdirSync(path.dirname(path.join(workspace, file)), { recursive: true });
+    fs.writeFileSync(path.join(workspace, file), content);
+  }
+  return { ...h, workspace, config, seen, respond, write };
+}
+
+test('/init creates and reads back project guidance through ordinary file tools', async (t) => {
+  const guidance = '# Project instructions\n\nUse node --test for verification.\n';
+  const h = projectHarness(t, [call('dsh_read', { path: 'README.md' }), call('dsh_write', { path: 'AGENTS.md', content: guidance }), call('dsh_read', { path: 'AGENTS.md' }), 'Created and verified AGENTS.md.']);
+  h.write('README.md', 'Run node --test to check this project.');
+  await h.startRun({ task: '/init' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(fs.readFileSync(path.join(h.workspace, 'AGENTS.md'), 'utf8'), guidance);
+  assert.deepEqual(h.seen.map((request) => request.tool), ['dsh_read', 'dsh_write', 'dsh_read']);
+  assert.match(h.sent[0], /Project initialization requested by \/init/);
+  assert.match(h.sent[0], /Inspect the README, source layout/);
+  assert.match(h.sent[2], /Current project instructions/);
+  assert.match(h.sent[2], /Use node --test for verification/);
+  assert.equal(h.saved().conversationHistory.find((entry) => entry.role === 'user').content, '/init');
+});
+
+test('/init in a subproject loads and preserves existing user rules', async (t) => {
+  const original = '# Project rules\nNever change generated files.\n';
+  const updated = original + '\nRun npm test.\n';
+  const h = projectHarness(t, [call('dsh_read', { path: 'app/AGENTS.md' }), call('dsh_edit', { path: 'app/AGENTS.md', oldText: original, newText: updated }), call('dsh_read', { path: 'app/AGENTS.md' }), 'Updated project guidance.']);
+  h.write('app/AGENTS.md', original);
+  await h.startRun({ task: '/init app' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.match(h.sent[0], /app\/AGENTS.md/);
+  assert.match(h.sent[0], /Never change generated files/);
+  assert.match(h.sent[0], /Preserve user-authored rules/);
+  assert.equal(fs.readFileSync(path.join(h.workspace, 'app/AGENTS.md'), 'utf8'), updated);
+  assert.equal(fs.existsSync(path.join(h.workspace, 'AGENTS.md')), false);
+});
+
+test('new nested instructions defer the whole batch before any write and do not consume a parse retry', async (t) => {
+  const proposed = call('dsh_write', { path: 'root.txt', content: 'Root edit' }) + '\n' + call('dsh_write', { path: 'src/new.js', content: 'Scoped edit' });
+  const h = projectHarness(t, [proposed, proposed, 'Changes verified.']);
+  h.write('AGENTS.md', 'Root project conventions');
+  h.write('src/AGENTS.md', 'Source subtree conventions');
+  h.write('other/AGENTS.md', 'Sibling rules must stay out');
+  await h.startRun({ task: 'Update the root and source files' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(h.seen.length, 2);
+  assert.match(h.sent[0], /Root project conventions/);
+  assert.doesNotMatch(h.sent[0], /Source subtree conventions/);
+  assert.match(h.sent[1], /Source subtree conventions/);
+  assert.match(h.sent[1], /No calls from the preceding response executed/);
+  assert.doesNotMatch(h.sent[1], /Sibling rules must stay out/);
+  assert.match(h.sent[1], /"kind":"deferred-response"/);
+  assert.equal(h.saved().conversationHistory.filter((entry) => entry.deferred).length, 1);
+  assert.equal(h.saved().conversationHistory.filter((entry) => entry.kind === 'tool-intent').length, 2);
+  assert.equal(h.saved().retryCount, 0);
+});
+
+test('current instructions survive compaction and are refreshed after a file changes', async (t) => {
+  const h = projectHarness(t, [call('dsh_read', { path: 'README.md' }), 'Read completed.']);
+  const original = 'Original project convention';
+  h.write('AGENTS.md', original);
+  h.write('README.md', 'Project readme');
+  h.local['dshpro:conversation:' + url] = { revision: 0, conversationHistory: Array.from({ length: 100 }, () => ({ role: 'assistant', content: 'Old prose '.repeat(3000) })) };
+  h.setBridge(async (method, route, body) => {
+    const result = await h.respond(method, route, body);
+    if (route === '/tool') h.write('AGENTS.md', 'Updated project convention');
+    return result;
+  });
+  await h.startRun({ task: 'Read the project documentation' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.match(h.sent[0], new RegExp(original));
+  assert.match(h.sent[1], /Updated project convention/);
+  assert.doesNotMatch(h.sent[1], new RegExp(original));
+  assert.ok(h.sent.every((message) => message.length < 200000));
+  assert.equal(h.saved().conversationHistory[0].content, 'Old prose '.repeat(3000));
+});
+
+test('changing AGENTS.md within a batch pauses remaining actions without repeating the successful write', async (t) => {
+  const guidance = 'Updated project rules';
+  const remaining = call('dsh_write', { path: 'file.js', content: 'Updated source' });
+  const h = projectHarness(t, [call('dsh_write', { path: 'AGENTS.md', content: guidance }) + '\n' + remaining, remaining, 'Finished under the new rules.']);
+  h.write('AGENTS.md', 'Original rules');
+  await h.startRun({ task: 'Update guidance and source' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.deepEqual(h.seen.map((entry) => entry.args.path), ['AGENTS.md', 'file.js']);
+  assert.match(h.sent[1], /None of the remaining calls executed/);
+  assert.match(h.sent[1], /Earlier recorded tool results remain executed/);
+  assert.match(h.sent[1], /Updated project rules/);
+});
+
+test('Resume reloads nested guidance from disk before sending the resumed task', async (t) => {
+  const h = projectHarness(t, ['Verified the existing outcome.']);
+  h.write('src/AGENTS.md', 'Current scoped instructions after reload');
+  h.local['dshpro:conversation:' + url] = { revision: 0, iterationCount: 2, inProgress: true, conversationHistory: [
+    { role: 'user', content: 'Fix the source' },
+    { role: 'assistant', tool_calls: [{ tool: 'dsh_write', args: { path: 'src/a.js', content: 'Already written' } }] },
+    { role: 'tool', tool: 'dsh_write', result: { ok: true } },
+  ] };
+  await h.startRun({ resume: true });
+  assert.match(h.sent[0], /Current scoped instructions after reload/);
+  assert.equal(h.seen.length, 0);
+  assert.equal(h.saved().stage, 'completed');
+});
+
+test('denying automatic instruction reads pauses before any prompt or tool is sent', async (t) => {
+  const h = projectHarness(t, ['Must not be sent']);
+  h.state.permissionMode = 'always';
+  const pending = h.startRun({ task: '/init' });
+  await new Promise(setImmediate);
+  assert.match(h.nodes.get('dshpro-confirm-text').textContent, /Load project instructions/);
+  h.nodes.get('dshpro-confirm-no').onclick();
+  await pending;
+  assert.equal(h.saved().stage, 'error');
+  assert.equal(h.saved().inProgress, true);
+  assert.equal(h.sent.length, 0);
+  assert.equal(h.seen.length, 0);
+});
+
+test('automatic discovery batches targets within the bridge limit for a full instruction-tool request', async (t) => {
+  const paths = Array.from({ length: 64 }, (_, index) => 'project-' + index + '/new.js');
+  const h = projectHarness(t, [call('dsh_instructions', { paths }), 'Instructions checked.']);
+  h.write('AGENTS.md', 'Root guidance');
+  await h.startRun({ task: 'Check guidance across project directories' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(h.seen.length, 1);
+});
+
+test('an instruction lookup failure preserves the exact proposed call without executing it', async (t) => {
+  const proposed = call('dsh_write', { path: 'src/file.js', content: 'Must not execute' });
+  const h = projectHarness(t, [proposed]);
+  let lookups = 0;
+  h.setBridge(async (method, route, body) => {
+    if (route === '/instructions' && ++lookups === 2) return { status: 500, json: { ok: false, error: { message: 'Guidance cannot be read' } } };
+    return h.respond(method, route, body);
+  });
+  await h.startRun({ task: 'Update source' });
+  assert.equal(h.saved().stage, 'error');
+  const saved = h.saved().conversationHistory.find((entry) => entry.role === 'assistant');
+  assert.equal(saved.raw, proposed);
+  assert.equal(saved.deferred, true);
+  assert.equal(h.seen.length, 0);
+});
 
 test('strict JSON preserves code, escapes, and literal protocol markers', () => {
   const content = '<a href="link">\n</a>\nconst r = /\\s+/;\n' + protocol.CLOSE + '\n[判定] data <ds_safety>literal</ds_safety>';

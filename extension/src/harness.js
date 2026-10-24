@@ -1,8 +1,9 @@
 import { protocol } from './core/protocol.js';
 import { history } from './core/history.js';
+import { initCommand, initMessage, projectInstructionsMessage } from './core/project-context.js';
 import { selectors } from './adapters/selectors.js';
 import { createDeepSeekAdapter } from './adapters/deepseek.js';
-import { PERMISSION_MODES, normalizeBridgeUrl } from './contracts.ts';
+import { DEFAULT_LOOP_LIMIT, DEFAULT_TOOL_RESULT_DELAY_SECONDS, MAX_TOOL_RESULT_DELAY_SECONDS, PERMISSION_MODES, normalizeBridgeUrl, normalizeToolResultDelaySeconds } from './contracts.ts';
 import { mountPanel, renderPanelState, showAgentView } from './ui/panel.ts';
 import { renderActivity } from './ui/activity.js';
 
@@ -15,7 +16,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   let disposed = false;
   const state = {
     connected: false, enabled: false, status: 'Disabled', health: null, tools: null, bridgeError: '',
-    loopLimit: 15, loopsLeft: 15, dailyLimit: 200, workspace: '', token: '',
+    loopLimit: DEFAULT_LOOP_LIMIT, loopsLeft: DEFAULT_LOOP_LIMIT, toolResultDelaySeconds: DEFAULT_TOOL_RESULT_DELAY_SECONDS, dailyLimit: 200, workspace: '', token: '',
     customSelectors: null, run: null, activeRunId: null, automaticSend: false,
     lastSendAt: 0, pendingTask: false, conversationHistory: [], checkpoint: null,
     permissionMode: 'important',
@@ -166,8 +167,11 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     renderActivity(document, state);
   }
   async function appendHistory(run, role, content, extra = {}) {
-    run.data.conversationHistory.push({ id: crypto.randomUUID(), role, content, timestamp: new Date().toISOString(), runId: run.id, workspace: run.data.workspace || state.workspace, ...extra });
+    const entry = { id: crypto.randomUUID(), role, content, timestamp: new Date().toISOString(), runId: run.id, workspace: run.data.workspace || state.workspace, ...extra };
+    run.data.conversationHistory.push(entry);
+    if (role === 'tool') run.data.pendingToolResults = true;
     await saveRun(run, role === 'tool');
+    return entry;
   }
   function availableTools() {
     return (state.tools?.tools || []).filter((tool) => tool.name !== 'dsh_handoff' || (state.health?.dsh?.binFound && state.health.dsh.available !== false));
@@ -182,6 +186,10 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       'Use workspace-relative paths for file tools. The extension handles approval prompts according to the user-selected permission setting.',
       `Permissions: ${PERMISSION_MODES[permissionMode(state.permissionMode)].label}. ` + (state.permissionMode === 'full' ? 'Shell commands may use normal shell syntax, including pipes, command chains, and redirection.' : 'Shell commands use the bridge command checks. Use the dedicated Git/GitHub tools for publishing.'),
       `Current default workspace: ${state.workspace || '(first authorized root)'}. To choose another authorized root, set args.workspace to that absolute root and keep args.path relative to it.`,
+      'The user command /init asks you to inspect the project and create or carefully update its AGENTS.md using the regular file tools. Follow the initialization instructions supplied with that task.',
+      state.health?.capabilities?.projectInstructions ?
+        'Applicable AGENTS.md files are loaded automatically. Follow the current project instructions and their directory scopes. Before shell commands or handoffs in a subdirectory, use dsh_instructions with that directory.' :
+        'This bridge does not support automatic project instructions. Before coding, read any root and applicable nested AGENTS.md files using the file tools. Updating the bridge enables automatic loading.',
       `For actions, start with exactly ONE complete tool block and end the response after it: ${protocol.OPEN}{"tool":"tool_name","args":{}}${protocol.CLOSE}`,
       `Never emit more than ${MAX_CALLS} tool calls in one response. Exceeding this limit rejects the entire response; none of its calls execute.`,
       'Each tool call needs its own complete opening and closing markers. A completed JSON object still needs its closing DSH marker.',
@@ -205,7 +213,6 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     ].join('\n');
   }
   function buildHistoryMessage(run) {
-    const view = history.build(run.data.conversationHistory);
     const lastAssistant = [...run.data.conversationHistory].reverse().find((entry) => entry.role === 'assistant');
     const repairGuidance = lastAssistant?.repaired && !lastAssistant.parseErrors?.length ?
       '\n[DeepDock Harness System] Your previous tool JSON required automatic repair. Its validated calls were processed; consult their recorded results before continuing. For subsequent code or multiline string arguments, use raw argument blocks inside a fenced text code block instead of embedding code in JSON strings. Keep the JSON header strictly valid. Do not repeat successful actions.\n' : '';
@@ -213,10 +220,62 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       run.historyCompactionLogged = true;
       log('Sending a compact history view. The complete saved transcript has been preserved.');
     }
-    return buildProtocolMessage(false) + repairGuidance + '\n\n[DeepDock Harness conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
+    const context = state.health?.capabilities?.projectInstructions ? projectInstructionsMessage([...(run.projectInstructions?.values() || [])]) : '';
+    if (context.length > 60000) throw fail('Project instructions exceed the prompt budget. Shorten the applicable AGENTS.md files before resuming.');
+    const prefix = buildProtocolMessage(false) + repairGuidance + context + initMessage(run.initCommand);
+    const view = history.build(run.data.conversationHistory, Math.min(150000, MAX_PROMPT_CHARS - prefix.length - 5000));
+    return prefix + '\n\n[DeepDock Harness conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
       'Reply in English. Use DSH tool markers for actions; if finished, give a summary with no tool calls.\n' +
       JSON.stringify(view) +
       `\nIterations remaining: ${state.loopLimit - run.data.iterationCount}. Workspace: ${run.data.workspace || '(default)'}.`;
+  }
+
+  async function refreshProjectInstructions(run, calls = []) {
+    if (!state.health?.capabilities?.projectInstructions) return false;
+    run.projectInstructions ||= new Map();
+    const groups = new Map();
+    function target(workspace, path) {
+      const selected = workspace || run.data.workspace || state.health.allowedRoots?.[0] || '';
+      if (!groups.has(selected)) groups.set(selected, new Set(['.']));
+      groups.get(selected).add(path);
+    }
+    target(run.data.workspace, run.initCommand?.target || '.');
+    for (const entry of run.projectInstructions.values()) target(entry.workspace, entry.path);
+    for (const call of calls) {
+      const args = call.args;
+      target(args.workspace, typeof args.path === 'string' ? args.path : '.');
+      if (call.tool === 'dsh_instructions' && Array.isArray(args.paths)) for (const path of args.paths) target(args.workspace, path);
+      if (call.tool === 'dsh_git_add' && Array.isArray(args.files)) {
+        for (const file of args.files) target(args.workspace, (args.path || '.') + '/' + file);
+      }
+    }
+    const before = JSON.stringify([...run.projectInstructions]);
+    const requests = [];
+    for (const [workspace, paths] of groups) {
+      const targets = [...paths];
+      for (let offset = 0; offset < targets.length; offset += 64) requests.push({ workspace, paths: targets.slice(offset, offset + 64) });
+    }
+    for (const args of requests) {
+      checkRun(run);
+      if (permissionMode(state.permissionMode) === 'always') {
+        const allowed = await showConfirm('Load project instructions', args, 'Read applicable AGENTS.md files before continuing this task.', run.controller.signal);
+        checkRun(run);
+        if (!allowed) throw fail('Project instruction loading was denied. Task paused before sending more code or executing tools.', 'E_USER_DENIED');
+      }
+      const response = await bridge('POST', '/instructions', args);
+      checkRun(run);
+      if (!response?.json?.ok) throw fail('Could not load project instructions: ' + (response?.json?.error?.message || response?.error || 'Update or reconnect the local bridge.'));
+      const data = response.json.data;
+      if (!data || typeof data.workspace !== 'string' || !Array.isArray(data.checkedFiles) || !Array.isArray(data.instructions) ||
+          data.instructions.some((entry) => typeof entry.path !== 'string' || typeof entry.scope !== 'string' || typeof entry.content !== 'string' || typeof entry.sha256 !== 'string')) {
+        throw fail('The bridge returned invalid project instructions. Update or reconnect the local bridge.');
+      }
+      for (const path of data.checkedFiles) run.projectInstructions.delete(JSON.stringify([data.workspace, path]));
+      for (const entry of data.instructions) run.projectInstructions.set(JSON.stringify([data.workspace, entry.path]), { workspace: data.workspace, ...entry });
+    }
+    // Order is stable even when rechecking a previously visited directory.
+    run.projectInstructions = new Map([...run.projectInstructions].sort(([a], [b]) => a.localeCompare(b)));
+    return before !== JSON.stringify([...run.projectInstructions]);
   }
   function showParserError(errors, completion) {
     showAgentView(document);
@@ -326,6 +385,11 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     const results = [];
     for (let index = 0; index < calls.length; index++) {
       checkRun(run);
+      if (index > 0 && await refreshProjectInstructions(run, calls.slice(index))) {
+        await appendHistory(run, 'system', 'Project instructions changed after an earlier call in this response. Earlier recorded tool results remain executed. None of the remaining calls executed. Review the current instructions and regenerate only the remaining actions; do not repeat successful calls.', { kind: 'instructions-update' });
+        log('Project instructions changed during the tool batch; remaining actions need review.');
+        return results;
+      }
       const call = calls[index];
       const id = `${run.id}:${run.data.iterationCount}:${index}`;
       // Persist intent BEFORE effects. A reload offers inspection/resumption and
@@ -397,10 +461,23 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     if (handshake) await appendHistory(run, 'system', buildProtocolMessage(), { kind: 'protocol' });
     else if (resume) await appendHistory(run, 'system', 'Resume this task. Recorded tool results have already executed. If an execution intent has no result, inspect the workspace before acting; do not blindly repeat writes or commands.');
     else await appendHistory(run, 'user', task);
+    const latestTask = [...run.data.conversationHistory].reverse().find((entry) => entry.role === 'user');
+    run.initCommand = handshake ? null : initCommand(latestTask?.content);
+    if (resume) run.instructionCalls = [...run.data.conversationHistory].reverse().find((entry) => entry.role === 'assistant' && entry.tool_calls?.length && !entry.parseErrors?.length)?.tool_calls;
+    if (run.initCommand) log('Initializing project instructions: ' + run.initCommand.target);
+    if (!handshake && !state.health?.capabilities?.projectInstructions) log('Automatic project instructions require an updated bridge. The agent will use file tools to inspect AGENTS.md.');
     let nextMessage = handshake ? buildProtocolMessage() : null;
     while (true) {
       checkRun(run);
       if (!handshake && run.data.iterationCount >= state.loopLimit) throw fail(`Hard iteration limit reached (${state.loopLimit}). Increase the limit in Settings before resuming.`, 'E_ITERATION_LIMIT');
+      if (!handshake && !nativeSubmission && run.data.pendingToolResults && state.toolResultDelaySeconds > 0) {
+        run.data.stage = 'cooldown';
+        await saveRun(run);
+        setStatus(`Waiting ${state.toolResultDelaySeconds}s before sending tool results...`);
+        await sleep(Math.round(state.toolResultDelaySeconds * 1000), run.controller.signal);
+        checkRun(run);
+      }
+      if (!handshake) await refreshProjectInstructions(run, run.instructionCalls || []);
       if (!handshake) run.data.iterationCount++;
       run.data.stage = 'waiting';
       run.data.inProgress = true;
@@ -420,12 +497,24 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       run.allowNewConversation = false;
       checkRun(run);
       const parsed = protocol.parse(response.raw, { maxCalls: MAX_CALLS, knownTools: availableTools().map((tool) => tool.name) });
-      await appendHistory(run, 'assistant', parsed.text, { raw: response.raw, tool_calls: parsed.calls, narration: parsed.narration, parseErrors: parsed.errors, repaired: parsed.repaired, completion: response.completion });
+      if (!handshake) run.data.pendingToolResults = false;
+      const needsInstructionCheck = !handshake && !parsed.errors.length && parsed.calls.length > 0 && state.health?.capabilities?.projectInstructions;
+      // Preserve the raw proposal before discovery, including if its approval is
+      // denied, the bridge fails, or Stop interrupts the instruction check.
+      const entry = await appendHistory(run, 'assistant', parsed.text, { raw: response.raw, tool_calls: parsed.calls, narration: parsed.narration, parseErrors: parsed.errors, repaired: parsed.repaired, completion: response.completion, ...(needsInstructionCheck ? { deferred: true } : {}) });
+      const deferred = needsInstructionCheck && await refreshProjectInstructions(run, parsed.calls);
+      if (needsInstructionCheck && !deferred) { delete entry.deferred; await saveRun(run); }
       if (handshake) {
         if (!/\b(?:protocol\s+understood|understood|acknowledged|ready|ok(?:ay)?|confirmed)\b|已理解|理解协议|收到|好的|明白|确认/i.test(parsed.text)) throw fail('DeepSeek did not confirm the protocol. See the recorded response and try Enable again.');
         state.enabled = true;
         log('Protocol confirmed. Ready for tasks.');
         return 'ready';
+      }
+      if (deferred) {
+        run.instructionCalls = parsed.calls;
+        await appendHistory(run, 'system', 'New or changed project instructions apply to the requested paths. No calls from the preceding response executed. Review the current AGENTS.md instructions and regenerate the appropriate action before continuing.', { kind: 'instructions-update' });
+        log('Loaded updated project instructions; asking the agent to review them before tools execute.');
+        continue;
       }
       if (parsed.errors.length) {
         showParserError(parsed.errors, response.completion);
@@ -445,6 +534,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       run.data.stage = 'executing';
       await saveRun(run);
       await executeCalls(parsed.calls, run);
+      run.instructionCalls = parsed.calls;
     }
   }
 
@@ -462,6 +552,10 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
         await message({ type: 'conversationClaim', url: run.url, runId: run.id });
         claimed = true;
         run.data = await loadConversation(run.url);
+        if (typeof run.data.pendingToolResults !== 'boolean') {
+          const lastTool = run.data.conversationHistory.findLastIndex((entry) => entry.role === 'tool');
+          run.data.pendingToolResults = lastTool >= 0 && !run.data.conversationHistory.slice(lastTool + 1).some((entry) => entry.role === 'assistant');
+        }
         if (!options.resume && !options.handshake) Object.assign(run.data, { iterationCount: 0, retryCount: 0, writeFailures: 0 });
         run.data.retryCount ||= 0; run.data.writeFailures ||= 0;
         if (options.resume) run.data.retryCount = 0;
@@ -671,14 +765,17 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       if (selectors && (Array.isArray(selectors) || typeof selectors !== 'object' || Object.values(selectors).some((value) => typeof value !== 'string' && !(Array.isArray(value) && value.every((entry) => typeof entry === 'string'))))) throw fail('Custom selectors must be an object of strings or arrays of strings.');
       const limit = Number(document.getElementById('dshpro-looplimit').value);
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw fail('Iteration limit must be an integer from 1 to 1000.');
+      const delayText = document.getElementById('dshpro-result-delay').value.trim();
+      const delaySeconds = Number(delayText);
+      if (!delayText || !Number.isFinite(delaySeconds) || delaySeconds < 0 || delaySeconds > MAX_TOOL_RESULT_DELAY_SECONDS) throw fail(`Tool result delay must be a number from 0 to ${MAX_TOOL_RESULT_DELAY_SECONDS} seconds.`);
       const baseUrl = normalizeBridgeUrl(document.getElementById('dshpro-baseurl').value.trim());
       const previous = await browser.storage.local.get(['token', 'baseUrl']);
       const tokenField = document.getElementById('dshpro-token');
       const token = tokenField.value.trim() || previous.token || '';
-      await browser.storage.local.set({ token, baseUrl, loopLimit: limit, customSelectors: selectors });
+      await browser.storage.local.set({ token, baseUrl, loopLimit: limit, toolResultDelaySeconds: delaySeconds, customSelectors: selectors });
       tokenField.value = '';
       tokenField.placeholder = token ? 'Saved token · leave blank to keep it' : 'Paste the token from pair.ps1';
-      state.token = token; state.loopLimit = limit; state.customSelectors = selectors; state.loopsLeft = limit;
+      state.token = token; state.loopLimit = limit; state.toolResultDelaySeconds = delaySeconds; state.customSelectors = selectors; state.loopsLeft = limit;
       if (previous.token !== token || previous.baseUrl !== baseUrl) { state.connected = false; state.enabled = false; setStatus('Disabled'); }
       log('Settings saved.'); refreshLoops();
       if (feedback) feedback.textContent = 'Settings saved. Test the connection, then enable the agent.';
@@ -690,9 +787,9 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   async function init() {
     if (disposed) return;
     buildPanel();
-    const settings = await browser.storage.local.get(['token', 'baseUrl', 'loopLimit', 'customSelectors', 'workspace', 'permissionMode']);
+    const settings = await browser.storage.local.get(['token', 'baseUrl', 'loopLimit', 'toolResultDelaySeconds', 'customSelectors', 'workspace', 'permissionMode']);
     if (disposed) return;
-    Object.assign(state, { token: settings.token || '', loopLimit: Math.min(1000, Math.max(1, Number(settings.loopLimit) || 15)), customSelectors: settings.customSelectors || null, workspace: settings.workspace || '' });
+    Object.assign(state, { token: settings.token || '', loopLimit: Math.min(1000, Math.max(1, Number(settings.loopLimit) || DEFAULT_LOOP_LIMIT)), toolResultDelaySeconds: normalizeToolResultDelaySeconds(settings.toolResultDelaySeconds), customSelectors: settings.customSelectors || null, workspace: settings.workspace || '' });
     state.permissionMode = permissionMode(settings.permissionMode);
     renderPermissions();
     state.loopsLeft = state.loopLimit;
@@ -700,6 +797,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     document.getElementById('dshpro-token').placeholder = state.token ? 'Saved token · leave blank to keep it' : 'Paste the token from pair.ps1';
     document.getElementById('dshpro-baseurl').value = settings.baseUrl || 'http://127.0.0.1:8765';
     document.getElementById('dshpro-looplimit').value = state.loopLimit;
+    document.getElementById('dshpro-result-delay').value = state.toolResultDelaySeconds;
     document.getElementById('dshpro-sel').value = state.customSelectors ? JSON.stringify(state.customSelectors) : '';
     state.checkpoint = await loadConversation();
     if (disposed) return;

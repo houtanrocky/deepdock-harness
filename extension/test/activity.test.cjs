@@ -60,6 +60,16 @@ test('legacy native tool markup appears as unexecuted markup rather than an assi
   assert.equal(view.changes.length, 0);
 });
 
+test('instruction changes explain deferred proposals without showing a completed action', () => {
+  const view = activityView([
+    { role: 'assistant', deferred: true, content: 'Proposed change', tool_calls: [{ tool: 'dsh_write', args: { path: 'src/a.js' } }] },
+    { role: 'system', kind: 'instructions-update', content: 'No calls executed. Review the new guidance.' },
+  ]);
+  assert.equal(view.rows.length, 1);
+  assert.equal(view.rows[0].title, 'Project instructions updated');
+  assert.equal(view.changes.length, 0);
+});
+
 test('file results carry bounded before/after diffs for writes, appends, and exact edits', async (t) => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-activity-'));
   t.after(() => {

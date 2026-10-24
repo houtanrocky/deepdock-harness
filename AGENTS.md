@@ -26,3 +26,7 @@ Recent commits use short subject lines, often with a conventional prefix such as
 ## Security & Configuration
 
 The bridge is intended to listen on `127.0.0.1` and authenticate extension requests with a local token. Never commit `bridge/config.json`, audit/runtime logs, credentials, or generated `.dsh-pro/` data. Keep workspace path validation and command safeguards intact when modifying file or shell tools.
+
+## Development Roadmap
+
+Before planning new features, read `docs/DEVELOPMENT-ROADMAP.md`. It records the agreed coding workflow priorities and their implementation status. Keep it updated when a listed capability changes or is completed.

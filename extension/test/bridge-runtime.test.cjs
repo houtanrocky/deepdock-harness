@@ -33,6 +33,22 @@ function loadBridge(filename, overrides, suffix = '', platform = process.platfor
   return module.exports;
 }
 
+test('the authenticated instruction route shares guarded discovery and advertises its capability', async (t) => {
+  const { workspace, config } = fixture(t);
+  fs.writeFileSync(path.join(workspace, 'AGENTS.md'), 'Project guidance');
+  const server = loadBridge('server.js', {
+    './guard': { ...guard, loadConfig: () => config },
+    './handoff': { HandoffManager: class {}, dshProbe: () => ({ binFound: false }) },
+    http: { createServer: () => ({ listen() {} }) },
+    fs: { ...fs, appendFileSync() {} },
+  }, '\nmodule.exports = { handle };');
+  const health = await server.handle({}, {}, '/health');
+  assert.equal(health.capabilities.projectInstructions, true);
+  const response = await server.handle({}, {}, '/instructions', { workspace, paths: ['new.js'] });
+  assert.equal(response.data.instructions[0].content, 'Project guidance');
+  await assert.rejects(server.handle({}, {}, '/instructions', { workspace, paths: ['../outside'] }), (error) => error.code === 'E_PATH_ESCAPE');
+});
+
 test('large command output supplies an exact workspace-relative read and a line-readable report', async (t) => {
   const { workspace, config } = fixture(t);
   fs.mkdirSync(path.join(workspace, 'project'));

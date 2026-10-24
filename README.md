@@ -18,7 +18,7 @@ DeepDock Harness is an open-source browser agent harness for **DeepSeek Chat**. 
 
 | Work from the chat you know | Stay involved in the work |
 | --- | --- |
-| **17 workspace tools** for files, commands, Git, GitHub, and optional agent handoff | **Three permission modes**, from approval on every tool to full access |
+| **18 workspace tools** for files, project instructions, commands, Git, GitHub, and optional agent handoff | **Three permission modes**, from approval on every tool to full access |
 | **File diffs and tool results** alongside the conversation | **Stop and explicit Resume** with locally saved task checkpoints |
 | **GitHub publishing** through your existing Git and GitHub CLI authentication | **Uncertain requests pause** for review instead of automatically replaying changes |
 
@@ -45,6 +45,14 @@ Download both components from the [latest release](https://github.com/houtanrock
 4. Click **Test connection**, then **Enable agent**. Once the protocol handshake finishes, send your task through the normal composer.
 
 Try: “Read this project’s README and explain its structure.” Then move on to a focused change with a check you can verify.
+
+Send `/init` after enabling the agent to create project-specific `AGENTS.md`
+instructions, or `/init relative/project` for a subproject. The agent inspects
+the project and preserves existing guidance when updating the file. With the
+updated bridge, root and applicable nested instructions load automatically;
+newly discovered rules are reviewed before proposed tools execute. **Ask every
+time** also asks before automatic instruction reads. Update the bridge alongside
+the extension to enable automatic loading.
 
 Requires Chrome or Edge **120+** and a DeepSeek account. The extension is distributed as an unpacked extension; a Chrome Web Store listing is not required. Git tools require Git; GitHub tools use your existing Git/SSH credentials and GitHub CLI authentication (`gh auth login`). Local agent handoff is optional and needs a separately installed and authenticated DeepSeek Harness runtime.
 
@@ -108,6 +116,7 @@ The harness validates all calls in a response before executing any. It records e
 | Area | Tools |
 | --- | --- |
 | Files and search | `dsh_tree`, `dsh_read`, `dsh_write`, `dsh_edit`, `dsh_search` |
+| Project guidance | `dsh_instructions` |
 | Commands and inspection | `dsh_bash`, `dsh_git_status`, `dsh_git_diff`, `dsh_log` |
 | Local agent | `dsh_handoff` |
 | Git and GitHub | `dsh_git_init`, `dsh_git_add`, `dsh_git_commit`, `dsh_git_remote`, `dsh_git_push`, `dsh_github_status`, `dsh_github_create` |
@@ -126,7 +135,14 @@ DeepSeek has no public DOM contract. If its layout changes, use **Diagnostics** 
 
 Automatic chat interaction can trigger service limits. Outgoing sends retain the cancellable two-second preview, throttling, and daily limit. The full transcript stays local; only a bounded view is sent with each continuation.
 
+In Settings, **Tool result delay (seconds)** adds a configurable wait before
+returning tool results to chat: 2 seconds by default, adjustable from 0 to 300.
+The normal two-second cancel preview follows that wait. New installations default
+to 30 iterations per task; previously saved iteration limits are preserved.
+
 ## Contribute
+
+See the [coding workflow roadmap](docs/DEVELOPMENT-ROADMAP.md) for the agreed feature priorities and current implementation status.
 
 Bug reports, improvements to DeepSeek selectors, tool modules, and documentation are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), use the [issue templates](https://github.com/houtanrocky/deepdock-harness/issues/new/choose), or open a pull request with the checks you ran. Report sensitive security issues using the process in [SECURITY.md](SECURITY.md).
 

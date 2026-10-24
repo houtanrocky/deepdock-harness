@@ -9,7 +9,7 @@ enabled, sending a task through the chat composer starts one asynchronous loop:
 3. Parse and validate every tool call before executing any call from that turn.
 4. Execute calls sequentially, persist each result, and send the updated transcript.
 5. Finish on a response with no tool calls, or pause on Stop, a failure, or the
-   hard iteration limit (15 by default, configurable from 1 to 1000 in Settings).
+   hard iteration limit (30 by default, configurable from 1 to 1000 in Settings).
 
 `src/harness.js` owns the cancellable async loop and `src/adapters/deepseek.js`
 owns DOM interaction. The loop yields while waiting for the model, storage,
@@ -17,6 +17,40 @@ confirmations, and bridge requests. `src/background.js`
 owns serialized storage, conversation ownership between tabs, and the existing
 handoff alarm polling. The DeepSeek page must remain open for chat interaction;
 a reload offers **Resume task** rather than silently restarting tools.
+
+## Tool result pacing
+
+Settings includes **Tool result delay (seconds)**, default **2**, configurable
+from **0 to 300** seconds. After recording tool results, the harness waits before
+its next automatic message. This extra wait precedes the existing two-second
+cancel preview and send throttling. A value of zero disables the extra wait.
+Initial tasks and the protocol handshake use the normal preview without this
+additional delay. The iteration default is 30; explicitly saved limits remain.
+
+The wait is cancellable with Stop. Results are already saved before it starts;
+Resume applies the selected delay and sends the saved results without replaying
+completed tools. The panel reports the wait, and settings survive a reload.
+
+## Project instructions
+
+After enabling the agent, send `/init` to inspect the selected workspace and
+generate project-specific `AGENTS.md` guidance. `/init relative/project` targets
+a subproject. The agent reads existing guidance, preserves useful rules, inspects
+the actual build and test configuration, and reads back its completed file.
+
+An updated bridge automatically supplies the root `AGENTS.md` before task prompts.
+Applicable nested files load as the agent targets directories and files; deeper
+instructions apply only to that subtree. Newly discovered or changed guidance
+defers the proposed response before any tool runs and asks the model to review
+the rules. These deferrals are visible in the timeline and do not consume parse
+retries. Current instructions remain outside history compaction and reload on
+Resume. Ask every time also applies to automatic instruction reads.
+
+For shell commands or handoffs in a subdirectory, the model first calls
+`dsh_instructions` with that directory. Discovery stays within the authorized
+workspace and rejects unreadable, binary, or oversized guidance explicitly.
+Older bridges retain file-tool access and report the automatic-loading upgrade
+requirement. Update and restart the bridge alongside the extension for discovery.
 
 ## Conversation and change history
 

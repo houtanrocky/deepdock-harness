@@ -2,6 +2,105 @@ import { test, expect, enable, queue, submit, complete, checkpoint, tool, TOKEN 
 import { readFile } from 'node:fs/promises';
 const nativeDsml = '<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name="bash">\n<｜｜DSML｜｜ parameter name="command" string="true">powershell -Command "Get-ChildItem | Where-Object { _.FullName -notmatch nodemodules }"</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>';
 
+test('pacing settings default to two seconds and thirty iterations, validate, and persist', async ({ chat, worker }, info) => {
+  await worker.evaluate(() => chrome.storage.local.remove('toolResultDelaySeconds'));
+  await chat.reload();
+  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  const delay = chat.getByLabel('Tool result delay (seconds)', { exact: true });
+  const limit = chat.getByLabel('Iteration limit', { exact: true });
+  await expect(delay).toHaveValue('2');
+  await expect(limit).toHaveValue('30');
+  await delay.fill('301');
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await expect(chat.locator('#dshpro-settings-feedback')).toContainText('0 to 300 seconds');
+  expect(await worker.evaluate(async () => (await chrome.storage.local.get('toolResultDelaySeconds')).toolResultDelaySeconds)).toBeUndefined();
+  await delay.fill('3.5');
+  await limit.fill('42');
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await expect(chat.locator('#dshpro-settings-feedback')).toContainText('Settings saved.');
+  await chat.reload();
+  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(delay).toHaveValue('3.5');
+  await expect(limit).toHaveValue('42');
+  await chat.screenshot({ path: info.outputPath('pacing-settings.png') });
+  await delay.fill('0');
+  await limit.fill('15');
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await expect(chat.locator('#dshpro-settings-feedback')).toContainText('Settings saved.');
+  await chat.reload();
+  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(delay).toHaveValue('0');
+  await expect(limit).toHaveValue('15');
+});
+
+test('Stop cancels the configured result delay and Resume sends saved results without repeating tools', async ({ chat, bridge, worker }) => {
+  await worker.evaluate(() => chrome.storage.local.set({ toolResultDelaySeconds: 10 }));
+  await chat.reload();
+  await enable(chat);
+  await queue(chat, [tool('dsh_read', { path: 'read-once.txt' })]);
+  await submit(chat, 'Read a file once');
+  await expect(chat.locator('#dshpro-phase')).toHaveText('Waiting 10s before sending tool results...');
+  expect((await checkpoint(chat, worker)).pendingToolResults).toBe(true);
+  expect(await chat.evaluate(() => (window as any).fixture.sent.length)).toBe(2);
+  await chat.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(chat.locator('#dshpro-phase')).toHaveText('Stopped');
+  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  await chat.getByLabel('Tool result delay (seconds)', { exact: true }).fill('0');
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await expect(chat.locator('#dshpro-settings-feedback')).toContainText('Settings saved.');
+  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  await queue(chat, ['Completed after reviewing the saved result.']);
+  await chat.locator('#dshpro-resume').click();
+  await complete(chat, worker);
+  expect(bridge.calls.map((call) => call.args.path)).toEqual(['read-once.txt']);
+  expect((await checkpoint(chat, worker)).pendingToolResults).toBe(false);
+});
+
+test('/init through the chat composer creates guidance and reloads it for the next task', async ({ chat, bridge, worker }, info) => {
+  bridge.projectInstructions = true;
+  await chat.locator('#dshpro-test').click();
+  await enable(chat);
+  const guidance = '# Project instructions\nRun npm test to verify changes.\n';
+  await queue(chat, [tool('dsh_read', { path: 'README.md' }), tool('dsh_write', { path: 'AGENTS.md', content: guidance }), tool('dsh_read', { path: 'AGENTS.md' }), 'Created and read back project guidance.']);
+  await submit(chat, '/init');
+  await complete(chat, worker, 25_000);
+  expect(bridge.instructionFiles.get('AGENTS.md')).toBe(guidance);
+  expect(bridge.calls.map((call) => call.tool)).toEqual(['dsh_read', 'dsh_write', 'dsh_read']);
+  const first = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  expect(first.some((message) => message.includes('Project initialization requested by /init'))).toBe(true);
+  await chat.reload();
+  await enable(chat);
+  await queue(chat, [tool('dsh_read', { path: 'package.json' }), 'Read the project configuration.']);
+  await submit(chat, 'Inspect the package configuration');
+  await expect.poll(() => bridge.calls.length).toBe(4);
+  await complete(chat, worker);
+  const sent = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  expect(sent[1]).toContain('Current project instructions');
+  expect(sent[1]).toContain('Run npm test to verify changes.');
+  expect(sent[1]).not.toContain('Project initialization requested by /init');
+  await expect(chat.locator('#dshpro-workspace + p')).toContainText('Send /init');
+  await chat.screenshot({ path: info.outputPath('project-instructions.png') });
+});
+
+test('nested instructions reach the agent before any proposed browser-driven tool executes', async ({ chat, bridge, worker }) => {
+  bridge.projectInstructions = true;
+  bridge.instructionFiles.set('AGENTS.md', 'Root guidance');
+  bridge.instructionFiles.set('src/AGENTS.md', 'Scoped source guidance');
+  await chat.locator('#dshpro-test').click();
+  await enable(chat);
+  const write = tool('dsh_write', { path: 'src/app.js', content: 'Updated code' });
+  await queue(chat, [write, write, 'Updated the source.']);
+  await submit(chat, 'Update the source');
+  await complete(chat, worker, 20_000);
+  expect(bridge.applied.map((call) => call.args.path)).toEqual(['src/app.js']);
+  const saved = await checkpoint(chat, worker);
+  expect(saved.conversationHistory.filter((entry: any) => entry.deferred)).toHaveLength(1);
+  const sent = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  expect(sent[2]).toContain('Scoped source guidance');
+  expect(sent[2]).toContain('No calls from the preceding response executed');
+  await expect(chat.locator('#dshpro-timeline')).toContainText('Project instructions updated');
+});
+
 test('shell failures followed by native DSML recover without silently completing or executing damaged commands', async ({ chat, bridge, worker }) => {
   bridge.toolErrors.set('broad PDF search', { code: 'E_TIMEOUT', message: 'Search timed out', extra: { stdout: 'main.go\n---WS-PDF---', timeoutMs: 20000, terminationConfirmed: true } });
   bridge.toolErrors.set('narrow PDF search', { code: 'E_COMMAND_FAILED', message: 'Exit code 1; no stdout or stderr', extra: { stdout: '', stderr: '', exitCode: 1 } });

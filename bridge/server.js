@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadConfig, ToolError, redact, resolveWorkspace } = require('./guard');
 const { TOOL_DEFS, runTool } = require('./tools');
+const { readProjectInstructions } = require('./project-instructions');
 const { HandoffManager, dshProbe } = require('./handoff');
 const BUILD_ID = require('./build').bridgeBuildId();
 
@@ -138,6 +139,7 @@ async function handle(req, res, pathname, body) {
         name: 'dsh-pro',
         version: '0.1.0',
         buildId: BUILD_ID,
+        capabilities: { projectInstructions: true },
         toolCount: TOOL_DEFS.filter((tool) => tool.name !== 'dsh_handoff' || readiness.available !== false).length,
         activeTools,
         activeHandoff: handoff.current?.runId || null,
@@ -148,6 +150,11 @@ async function handle(req, res, pathname, body) {
     case '/tools': {
       const readiness = handoff.availability?.();
       return { ok: true, tools: TOOL_DEFS.filter((tool) => tool.name !== 'dsh_handoff' || readiness?.available !== false) };
+    }
+    case '/instructions': {
+      const data = readProjectInstructions(config, body?.workspace, body?.paths);
+      audit({ op: 'instructions', workspace: data.workspace, files: data.instructions.length, ok: true });
+      return { ok: true, data };
     }
     case '/tool': {
       if (shuttingDown) throw new ToolError('E_BUSY', 'The bridge is restarting. Reconnect before starting more work.');

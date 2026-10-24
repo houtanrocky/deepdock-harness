@@ -1,3 +1,11 @@
+export const DEFAULT_LOOP_LIMIT = 30;
+export const DEFAULT_TOOL_RESULT_DELAY_SECONDS = 2;
+export const MAX_TOOL_RESULT_DELAY_SECONDS = 300;
+
+export function normalizeToolResultDelaySeconds(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.min(value, MAX_TOOL_RESULT_DELAY_SECONDS) : DEFAULT_TOOL_RESULT_DELAY_SECONDS;
+}
+
 export const PERMISSION_MODES = {
   full: { label: 'Full access', description: 'Run tools and unrestricted shell commands without approval prompts.' },
   important: { label: 'Ask for important commands', description: 'Ask before sensitive file changes and commands outside the safe list.' },

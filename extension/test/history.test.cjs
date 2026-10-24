@@ -54,3 +54,12 @@ test('rejected turns do not project partially parsed calls as executable history
   assert.equal(row.parseErrors[0].raw, undefined);
   assert.equal(JSON.stringify(entries), before);
 });
+
+test('instruction-deferred proposals stay unexecuted in compact history', () => {
+  const entry = { role: 'assistant', raw: 'Original proposal', deferred: true, tool_calls: [{ tool: 'dsh_write', args: { path: 'src/a.js' } }] };
+  const [row] = history.build([entry]).conversationHistory;
+  assert.equal(row.kind, 'deferred-response');
+  assert.equal(row.tool_calls, undefined);
+  assert.match(row.content, /did not execute/);
+  assert.equal(entry.raw, 'Original proposal');
+});
