@@ -44,6 +44,7 @@ npm run build
 node scripts/build-store-assets.mjs
 npm run zip
 node scripts/package-store-kit.mjs
+powershell -ExecutionPolicy Bypass -File scripts/package-store-assets.ps1
 ```
 
 The capture script uses a temporary browser profile and the local test fixture. It never signs in to DeepSeek, uses your bridge configuration, or runs tools against a private project. The icon source is `extension/src/assets/logo.svg`. Screenshots and promotional tiles are rendered as opaque RGB JPEGs; the 128px icon retains transparent padding.
