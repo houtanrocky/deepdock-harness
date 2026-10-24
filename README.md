@@ -24,6 +24,8 @@ npm run build
 3. Open `https://chat.deepseek.com`. In the DeepDock panel, open **Settings**, paste the bridge token, and save. The bridge address defaults to `http://127.0.0.1:8765`.
 4. Click **Test connection**, then **Enable agent**. Once DeepSeek confirms the protocol, send your task through its normal composer.
 
+For a Windows installer that bundles Node.js and starts the bridge in the background, see [the installer build guide](scripts/installer/README.md). The installer asks you to choose a project folder and copies the pairing token to the clipboard. The browser extension is distributed separately.
+
 For daily use, `scripts/start-deepdock.cmd` starts or refreshes an idle bridge and `scripts/stop-deepdock.cmd` stops it. The extension must remain open in the conversation while it interacts with DeepSeek. Use **Stop** to cancel a task and **Disable agent** to return to ordinary chat. A page reload offers **Resume unfinished task** and never silently reruns tools.
 
 Pairing is safe to repeat. To explicitly rotate the token, run `powershell -File scripts/pair.ps1 -RotateToken`; this refuses to interrupt active work and restarts an idle bridge with the new token. See [bridge scripts and token mismatch recovery](DEVELOPMENT.md#bridge-scripts) for older installations.
@@ -68,7 +70,7 @@ The harness validates all calls in a response before executing any. It records e
 
 The extension discovers tool definitions from the bridge. See the [module registration and GitHub workflow guide](bridge/tool-modules/README.md) to add tools. GitHub creation and pushing are separate operations, and new repository destinations must use an explicit owner and name.
 
-File paths are relative to an allowed workspace. Reads support line offsets and limits; writes and edits support content hashes to prevent stale edits. Large outputs are saved under the workspace's `.dsh-pro/outputs/`. Execution logs and handoff artifacts live under `.dsh-pro/`; bridge auditing is written to `bridge/audit.jsonl`.
+File paths are relative to an allowed workspace. Reads support line offsets and limits; writes and edits support content hashes to prevent stale edits. Large outputs are saved under the workspace's `.dsh-pro/outputs/`. Execution logs and handoff artifacts live under `.dsh-pro/`; bridge auditing is written to `bridge/audit.jsonl` during development and `%APPDATA%\DeepDock\audit.jsonl` in the Windows installation.
 
 ## Configuration and boundaries
 

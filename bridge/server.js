@@ -15,11 +15,12 @@ const { HandoffManager, dshProbe } = require('./handoff');
 const BUILD_ID = require('./build').bridgeBuildId();
 
 const BRIDGE_DIR = __dirname;
-const AUDIT_FILE = path.join(BRIDGE_DIR, 'audit.jsonl');
+const CONFIG_DIR = path.resolve(process.env.DEEPDOCK_CONFIG_DIR || BRIDGE_DIR);
+const AUDIT_FILE = path.join(CONFIG_DIR, 'audit.jsonl');
 
 let config;
 try {
-  config = loadConfig(BRIDGE_DIR);
+  config = loadConfig(CONFIG_DIR);
 } catch (err) {
   console.error('[DeepDock] config load failed:', err.message);
   process.exit(1);

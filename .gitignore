@@ -18,3 +18,7 @@ node_modules/
 .output/
 test-results/
 playwright-report/
+scripts/installer/build/
+dist/installer/
+chrome-web-store-submission/extension/*.zip
+chrome-web-store-submission/companion/*.exe
