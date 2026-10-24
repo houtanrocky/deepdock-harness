@@ -20,5 +20,6 @@ test-results/
 playwright-report/
 scripts/installer/build/
 dist/installer/
+dist/store-assets/
 chrome-web-store-submission/extension/*.zip
 chrome-web-store-submission/companion/*.exe

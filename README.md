@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/icon128.png" width="80" alt="DeepDock Harness duck logo"></p>
+<p align="center"><img src="docs/assets/icon128.png" width="80" alt="DeepDock Harness blue whale icon"></p>
 
 <h1 align="center">DeepDock Harness</h1>
 <p align="center"><strong>Give DeepSeek Chat a local workspace.</strong><br>Local coding tools. Visible progress. Your permission.</p>
@@ -39,8 +39,8 @@ Tools execute on your computer. Relevant prompts, code, and tool results can be 
 
 Download both components from the [latest release](https://github.com/houtanrocky/deepdock-harness/releases/latest):
 
-1. **[Bridge installer](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe)** — Windows x64; bundles Node.js. Choose your project folder during setup. The installer copies your pairing token to the clipboard. This community installer is unsigned.
-2. **[Browser extension ZIP](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/deepdock-harness-0.2.1-chrome.zip)** — extract it, open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the extracted folder containing `manifest.json`.
+1. **[Bridge installer](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.2/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe)** — Windows x64; bundles Node.js. Choose your project folder during setup. The installer copies your pairing token to the clipboard. This community installer is unsigned.
+2. **[Browser extension ZIP](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.2/deepdock-harness-0.2.2-chrome.zip)** — extract it, open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the extracted folder containing `manifest.json`.
 3. Open [DeepSeek Chat](https://chat.deepseek.com). In the **DeepDock Harness** panel, open **Settings**, paste the pairing token, and save.
 4. Click **Test connection**, then **Enable agent**. Once the protocol handshake finishes, send your task through the normal composer.
 

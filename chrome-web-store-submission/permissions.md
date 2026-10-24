@@ -1,6 +1,6 @@
 # Permission and site access justifications
 
-These justifications correspond to the built extension manifest at version 0.2.0. Re-check the manifest whenever the extension changes.
+These justifications correspond to the built extension manifest at version 0.2.2. Re-check the manifest whenever the extension changes. Use [PRIVACY-ANSWERS.md](PRIVACY-ANSWERS.md) for the complete combined host explanation and the data-usage checkboxes.
 
 ## Required manifest permissions
 

@@ -1,6 +1,6 @@
 {
   "name": "deepdock-harness",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Give DeepSeek Chat a local workspace: file, shell, Git, and GitHub tools with permissions and resumable tasks.",
@@ -14,7 +14,16 @@
   "bugs": {
     "url": "https://github.com/houtanrocky/deepdock-harness/issues"
   },
-  "keywords": ["deepseek", "agent-harness", "browser-extension", "coding-agent", "local-tools", "chrome", "edge", "github"],
+  "keywords": [
+    "deepseek",
+    "agent-harness",
+    "browser-extension",
+    "coding-agent",
+    "local-tools",
+    "chrome",
+    "edge",
+    "github"
+  ],
   "engines": {
     "node": ">=22.18.0"
   },

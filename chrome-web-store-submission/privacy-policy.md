@@ -14,6 +14,8 @@ DeepDock Harness is a browser extension that adds a coding-agent panel to DeepSe
 
 DeepDock Harness handles the contents of the active DeepSeek Chat conversation, including prompts, model responses, and task results needed to continue or recover a coding task. It also handles the conversation URL/path to separate saved conversations. The extension stores the bridge address, pairing token, selected workspace, permission mode, iteration settings, and custom selectors. Depending on the task, prompts or results can include source code, file paths, command text, or command output.
 
+The extension detects task submissions in the DeepSeek composer and records task timestamps, iteration progress, and a daily-send count to operate and limit the agent workflow. It does not log general keystrokes, mouse positions, or activity on unrelated sites. This task activity is stored locally with the relevant settings and conversation checkpoint.
+
 DeepDock Harness stores these settings and conversation checkpoints in Chrome extension storage on the user's device. Temporary handoff status is stored in session storage. The separately installed bridge writes its own audit and runtime logs locally. DeepDock Harness does not operate a server that receives this information and does not collect analytics or telemetry.
 
 ## How information is used and shared
@@ -22,7 +24,7 @@ DeepDock Harness uses conversation content to identify and carry out the user's 
 
 DeepDock Harness enters follow-up prompts and relevant context into the user's normal DeepSeek Chat conversation. DeepSeek receives that information and handles it under its own terms and privacy practices. Tool results may be included in follow-up prompts so the model can continue the task.
 
-If the user invokes GitHub tools, the local GitHub CLI communicates with GitHub using the user's existing credentials. If the user invokes a handoff to DeepSeek Harness, that separately installed program and the model/provider configured for it process the handoff under their own terms and settings.
+If the user invokes GitHub tools, the local GitHub CLI communicates with GitHub using the user's existing credentials. The GitHub authentication-status tool returns the active account's username, which can be saved in task history and included in relevant follow-up prompts. It does not return the GitHub password or authentication token. If the user invokes a handoff to DeepSeek Harness, that separately installed program and the model/provider configured for it process the handoff under their own terms and settings.
 
 The extension does not sell user data, use it for advertising, or share it with the developer for analytics. It does not read the user's clipboard or access unrelated websites.
 

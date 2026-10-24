@@ -10,8 +10,12 @@ Select the matching categories in the dashboard's current data disclosure form. 
 - Web browsing activity: the DeepSeek conversation URL/path used to keep each conversation's saved history separate. DeepDock Harness does not monitor other sites.
 - Personal communications and user-generated content: user prompts, model responses, and task/tool results saved as local conversation checkpoints or included in follow-up prompts.
 - Authentication information: the bridge pairing token, stored in Chrome extension storage and sent only to the local bridge in an Authorization header.
+- User activity: task submissions, task timestamps, iteration progress, and daily-send counts used for the coding-agent workflow. It does not log general keystrokes, mouse positions, or unrelated activity.
+- Personally identifiable information: the active GitHub username returned when the user invokes the GitHub authentication-status tool. That account identifier can be saved as a tool result and included in relevant follow-up prompts.
 
-DeepDock Harness does not intentionally collect location, financial/payment information, health information, or contact information. Users can choose to put any kind of information into their DeepSeek conversation; they should follow DeepSeek's own guidance for sensitive information.
+Use the dashboard's exact **Web history** label for the saved DeepSeek conversation URL/path. All nine checkbox values and copy-ready justifications are in [PRIVACY-ANSWERS.md](PRIVACY-ANSWERS.md) and [privacy-fields.json](privacy-fields.json).
+
+DeepDock Harness does not intentionally collect location, financial/payment information, or health information. It does not separately request real names, email addresses, or postal addresses as profile fields. Users can choose to put any kind of information into their DeepSeek conversation or project files; they should follow DeepSeek's own guidance for sensitive information.
 
 ## Where the data goes
 
