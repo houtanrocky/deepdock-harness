@@ -174,7 +174,7 @@ export const protocol = (() => {
       const start = wrapper.start;
       blocks++;
       if (blocks > maxCalls) {
-        errors.push({ block: blocks, message: `Too many calls; the maximum is ${maxCalls} per response.`, raw: text.slice(start) });
+        errors.push({ block: blocks, code: 'E_TOO_MANY_CALLS', message: `Too many calls; the maximum is ${maxCalls} per response.`, raw: text.slice(start) });
         break;
       }
       try {

@@ -1,6 +1,6 @@
 # Chrome Web Store upload fields
 
-Use these values in the Store listing tab. The title and summary come from the extension package; upload the new version 0.2.2 package to get the blue whale icon.
+Use these values in the Store listing tab. The title and summary come from the extension package; upload the new version 0.2.3 package to get the blue whale icon.
 
 | Dashboard field | Value or file |
 | --- | --- |
@@ -33,7 +33,7 @@ Preview the complete artwork in [asset-preview.html](asset-preview.html). Machin
 
 ## Package and remaining dashboard fields
 
-Upload `extension/deepdock-harness-0.2.2-chrome.zip` as the extension package. The store-assets ZIP is an artwork bundle to extract locally; it is not the extension package. The companion bridge installer is a separate user download.
+Upload `extension/deepdock-harness-0.2.3-chrome.zip` as the extension package. The store-assets ZIP is an artwork bundle to extract locally; it is not the extension package. The companion bridge installer is a separate user download.
 
 Use the public privacy URL `https://houtanrocky.github.io/deepdock-harness/privacy.html`. The single-purpose statement, permission explanations, and data-use details remain in [store-listing.md](store-listing.md), [permissions.md](permissions.md), and [data-use-disclosure.md](data-use-disclosure.md).
 

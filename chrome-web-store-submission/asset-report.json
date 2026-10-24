@@ -1,5 +1,5 @@
 {
-  "extensionVersion": "0.2.2",
+  "extensionVersion": "0.2.3",
   "titleMatchesPackage": true,
   "summaryMatchesPackage": true,
   "summaryCharacters": 84,
@@ -24,8 +24,8 @@
       "bitsPerChannel": 8,
       "channels": 3,
       "alpha": false,
-      "bytes": 157585,
-      "sha256": "a58b12b206cf50f391f49844a3dced6b2672af4430ed9a0305c3cefe27890c57"
+      "bytes": 157532,
+      "sha256": "76e125d3435bc8d2bd5faeccd647ad6927ed973c7fefaeae4fbfbba0d5c875f5"
     },
     {
       "file": "screenshots/02-review-file-diffs.jpg",
@@ -35,8 +35,8 @@
       "bitsPerChannel": 8,
       "channels": 3,
       "alpha": false,
-      "bytes": 161451,
-      "sha256": "8cd26cfa4b649be1fe29ba3d13487b74ee629175aa03addeae56e25a4706378b"
+      "bytes": 161455,
+      "sha256": "a47cb6127caf99eeef1ee7b29c33d88a101eb5d5aa17d8d35683d15443842c65"
     },
     {
       "file": "screenshots/03-permission-controls.jpg",
@@ -46,8 +46,8 @@
       "bitsPerChannel": 8,
       "channels": 3,
       "alpha": false,
-      "bytes": 145601,
-      "sha256": "ae8bba8d3ff2600729f1a64f336eae194791b6ea356aaf364fda08999ad239d0"
+      "bytes": 145587,
+      "sha256": "b3df6be74950abfd02c1988b792cf30992055a2ecc489f53f570a8491486a124"
     },
     {
       "file": "screenshots/04-resume-work.jpg",
@@ -57,8 +57,8 @@
       "bitsPerChannel": 8,
       "channels": 3,
       "alpha": false,
-      "bytes": 155446,
-      "sha256": "1d09589966d776689ea11413c2f58d19d418f9a22af9a405e80ff6136e046efd"
+      "bytes": 155493,
+      "sha256": "e4f06b2b9d158271e3c8bad41e6abec7600eedc7ef07d8c35bf3b5c87b20758c"
     },
     {
       "file": "screenshots/05-local-bridge-setup.jpg",
@@ -68,8 +68,8 @@
       "bitsPerChannel": 8,
       "channels": 3,
       "alpha": false,
-      "bytes": 132931,
-      "sha256": "58d3a685b2a141dffbc123dc9e84a870c4dd2d5475934b49821fadd4d4b3263c"
+      "bytes": 132934,
+      "sha256": "f35b5d9be73c47173d943ebd38b0e966ad5bde69d3993cbf86ed5f2e70148bdb"
     },
     {
       "file": "promotional/small-promo-440x280.jpg",

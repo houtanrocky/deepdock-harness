@@ -39,3 +39,18 @@ test('compact history retains user-facing summaries, commentary, and workspace i
   assert.equal(view[1].summary, 'I am correcting the setting.');
   assert.equal(JSON.stringify(entries), before);
 });
+
+test('rejected turns do not project partially parsed calls as executable history', () => {
+  const entries = [{ role: 'assistant', content: 'Original rejected response', raw: 'Original rejected response',
+    tool_calls: [{ tool: 'dsh_read', args: { path: 'must-not-run.txt' } }],
+    parseErrors: [{ code: 'E_TOO_MANY_CALLS', message: 'Too many calls; the maximum is 3 per response.', raw: 'Rejected trailing calls' }],
+  }];
+  const before = JSON.stringify(entries);
+  const [row] = history.build(entries).conversationHistory;
+  assert.equal(row.kind, 'rejected-response');
+  assert.match(row.content, /No calls from this response executed/);
+  assert.equal(row.parseErrors[0].code, 'E_TOO_MANY_CALLS');
+  assert.equal(row.tool_calls, undefined);
+  assert.equal(row.parseErrors[0].raw, undefined);
+  assert.equal(JSON.stringify(entries), before);
+});

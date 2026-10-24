@@ -183,6 +183,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       `Permissions: ${PERMISSION_MODES[permissionMode(state.permissionMode)].label}. ` + (state.permissionMode === 'full' ? 'Shell commands may use normal shell syntax, including pipes, command chains, and redirection.' : 'Shell commands use the bridge command checks. Use the dedicated Git/GitHub tools for publishing.'),
       `Current default workspace: ${state.workspace || '(first authorized root)'}. To choose another authorized root, set args.workspace to that absolute root and keep args.path relative to it.`,
       `For actions, start with exactly ONE complete tool block and end the response after it: ${protocol.OPEN}{"tool":"tool_name","args":{}}${protocol.CLOSE}`,
+      `Never emit more than ${MAX_CALLS} tool calls in one response. Exceeding this limit rejects the entire response; none of its calls execute.`,
       'Each tool call needs its own complete opening and closing markers. A completed JSON object still needs its closing DSH marker.',
       'Include a short user-facing explanation in the tool header summary field, for example {"tool":"dsh_read","summary":"I am checking the existing settings before changing them.","args":{"path":"settings.json"}}. Explain the immediate purpose and, when useful, what the preceding result established. The user sees these summaries in the activity history. Keep summaries factual and concise; do not include private reasoning. When finished, explain the changes made and checks performed in your final response.',
       'For long files, send content in small chunks (aim below 1.5 KB per chunk). Use dsh_write for the first chunk, then dsh_write with append:true and expectedSha256 from the preceding write/read. Use dsh_read to verify each chunk before appending. This is output-truncation guidance, not a bridge byte limit. Never repeat an uncertain write without inspecting the current file.',
@@ -205,11 +206,14 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   }
   function buildHistoryMessage(run) {
     const view = history.build(run.data.conversationHistory);
+    const lastAssistant = [...run.data.conversationHistory].reverse().find((entry) => entry.role === 'assistant');
+    const repairGuidance = lastAssistant?.repaired && !lastAssistant.parseErrors?.length ?
+      '\n[DeepDock Harness System] Your previous tool JSON required automatic repair. Its validated calls were processed; consult their recorded results before continuing. For subsequent code or multiline string arguments, use raw argument blocks inside a fenced text code block instead of embedding code in JSON strings. Keep the JSON header strictly valid. Do not repeat successful actions.\n' : '';
     if (!run.historyCompactionLogged && JSON.stringify(run.data.conversationHistory).length > MAX_PROMPT_CHARS) {
       run.historyCompactionLogged = true;
       log('Sending a compact history view. The complete saved transcript has been preserved.');
     }
-    return buildProtocolMessage(false) + '\n\n[DeepDock Harness conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
+    return buildProtocolMessage(false) + repairGuidance + '\n\n[DeepDock Harness conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
       'Reply in English. Use DSH tool markers for actions; if finished, give a summary with no tool calls.\n' +
       JSON.stringify(view) +
       `\nIterations remaining: ${state.loopLimit - run.data.iterationCount}. Workspace: ${run.data.workspace || '(default)'}.`;
@@ -232,6 +236,8 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     let text;
     if (parsed.errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
       text = '[DeepDock Harness System] Your reply used unsupported native DSML tool markup. No calls from that rejected response executed. Regenerate the intended action as one DSH block using the live catalog. For commands use dsh_bash, not bash. Do not translate or execute the damaged DSML parameter text automatically. Example: ' + protocol.OPEN + '{"tool":"dsh_bash","args":{"command":"dir /b"}}' + protocol.CLOSE;
+    } else if (parsed.errors.some((error) => error.code === 'E_TOO_MANY_CALLS')) {
+      text = `[DeepDock Harness System] Your response exceeded the tool-call limit (${MAX_CALLS} per response). No calls from that rejected response executed, including the first ${MAX_CALLS}. Split the pending actions across responses, starting with exactly ONE complete tool call. Wait for its result before requesting the next action.`;
     } else if (parsed.errors.some((error) => error.message.startsWith('Empty or placeholder'))) {
       text = `[DeepDock Harness System] No usable response was received. Error: ${details} Continue the unfinished task with a complete tool call, or provide a substantive completion summary.`;
     } else if (framingError) {
@@ -421,7 +427,6 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
         log('Protocol confirmed. Ready for tasks.');
         return 'ready';
       }
-      if (parsed.repaired) log('Repaired malformed tool JSON; continuing with validated arguments.');
       if (parsed.errors.length) {
         showParserError(parsed.errors, response.completion);
         run.data.retryCount++;
@@ -431,6 +436,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
         nextMessage = recovery;
         continue;
       }
+      if (parsed.repaired) log('Repaired malformed tool JSON; continuing with validated arguments.');
       run.data.retryCount = 0;
       if (parsed.calls.length === 0) {
         log('Task complete: ' + (parsed.done ?? parsed.text).slice(0, 160));

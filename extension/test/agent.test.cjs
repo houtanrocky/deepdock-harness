@@ -124,6 +124,38 @@ test('malformed, incomplete, unknown, and excessive calls are explicit failures'
   assert.doesNotMatch(rejected.errors[0].message, /Too many calls/);
 });
 
+test('five valid read calls recover as a limit error without executing any rejected calls', async () => {
+  const paths = ['Notification.java', 'NotificationEmailService.java', 'NotificationSmsService.java', 'DiscountPercentageStrategy.java', 'DiscountNoDiscountStrategy.java']
+    .map((file) => 'demo14/src/main/java/com/eduStream/service/' + file);
+  const reads = paths.map((path) => call('dsh_read', { path }));
+  const rejected = reads.join('\n');
+  assert.equal(protocol.parse(rejected).errors[0].code, 'E_TOO_MANY_CALLS');
+  const h = contentHarness([call('dsh_read', { path: 'already-read.txt' }), rejected, ...reads, 'Read all five files.']);
+  await h.startRun({ task: 'Inspect the notification and discount services' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.deepEqual(h.requests.map((request) => request.body.args.path), ['already-read.txt', ...paths]);
+  assert.match(h.sent[2], /exceeded the tool-call limit \(3 per response\)/);
+  assert.match(h.sent[2], /No calls from that rejected response executed, including the first 3/);
+  assert.doesNotMatch(h.sent[2], /Your JSON was malformed/);
+  assert.equal(h.saved().conversationHistory.find((entry) => entry.parseErrors?.length).raw, rejected);
+});
+
+test('successful JSON repair guides the next turn toward raw arguments without retrying the action', async () => {
+  const code = '<a href="link">Hello</a>\n<script>console.log("ok");</script>';
+  const malformed = protocol.OPEN + '{"tool":"dsh_write","args":{"path":"a.html","content":"' + code + '"}}' + protocol.CLOSE;
+  const h = contentHarness([malformed, call('dsh_read', { path: 'a.html' }), 'Written and verified.']);
+  await h.startRun({ task: 'Write and verify the page' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.deepEqual(h.requests.map((request) => request.body.tool), ['dsh_write', 'dsh_read']);
+  assert.equal(h.requests[0].body.args.content, code);
+  assert.match(h.sent[1], /previous tool JSON required automatic repair/);
+  assert.match(h.sent[1], /use raw argument blocks inside a fenced text code block/);
+  assert.doesNotMatch(h.sent[2], /previous tool JSON required automatic repair/);
+  assert.equal(h.saved().retryCount, 0);
+  assert.equal(h.saved().conversationHistory.some((entry) => entry.kind === 'parse-error'), false);
+  assert.equal(h.saved().conversationHistory.find((entry) => entry.repaired).raw, malformed);
+});
+
 test('native DSML is rejected atomically while literal markup inside DSH arguments remains data', () => {
   for (const raw of [dsml, dsml.replaceAll('｜', '|'), '<DSML><invoke name="bash">echo example</invoke></DSML>', '<function_calls><invoke name="bash">echo example</invoke></function_calls>', '<｜DSML｜invoke name="bash">', '<｜｜DS', '<|', '```text\n<｜DS\n```', call('dsh_read', { path: 'must-not-run.txt' }) + dsml, 'DSH:DONE:finished\n' + dsml]) {
     const parsed = protocol.parse(raw);

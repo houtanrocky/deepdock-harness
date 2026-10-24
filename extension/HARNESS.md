@@ -68,6 +68,10 @@ again. Already valid JSON is never rewritten. Arbitrarily malformed JSON is
 ambiguous; unsuccessful repairs produce an explicit error rather than guessed
 arguments or a lost tool call.
 
+After a successful repair, the next model prompt recommends raw argument blocks
+for code and multiline strings. The repaired call's result remains in history;
+this guidance does not retry the call or consume a parsing retry.
+
 The panel and saved transcript retain the exact rejected output. Recovery sends a
 bounded excerpt back to the model and allows two retries. A third failure pauses
 the task. Partial markers (including `⟦DS`) and bare `text`, `Safe`, or empty
@@ -102,6 +106,11 @@ cannot appear both in the JSON header and in a raw block. The model is instructe
 to start with one complete tool block and end the response after it. The parser
 still accepts up to three calls for compatibility. If any block fails validation,
 none of that response's calls execute.
+
+Exceeding the three-call limit produces a dedicated limit error. Recovery asks
+for one pending action at a time and states that even the first three calls did
+not execute. Compact history labels rejected responses explicitly and omits
+their partially parsed calls; the full original response stays saved locally.
 
 For long documents, aim below 1.5 KB of content per response. Write the first
 chunk with `dsh_write`, verify it with `dsh_read`, then append the next chunk:

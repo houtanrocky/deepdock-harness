@@ -1,5 +1,5 @@
 {
-  "version": "0.2.2",
+  "version": "0.2.3",
   "singlePurposeDescription": "DeepDock Harness turns a conversation on DeepSeek Chat into a user-controlled coding agent by connecting that conversation to local project tools through a separately installed loopback bridge.",
   "storageJustification": "Stores the user's bridge address and pairing token, selected workspace, permission mode, iteration settings, custom DeepSeek selectors, conversation checkpoints, and daily-send counters. Temporary handoff state and tab ownership leases use session storage. This supports local task execution and recovery after a page reload or service-worker suspension. Data is kept in Chrome extension storage on the user's device.",
   "alarmsJustification": "Periodically wakes the extension service worker to check the status of a local-agent handoff if the DeepSeek tab is suspended. The alarm is created only while a handoff is being tracked and is cleared when no tracked handoffs remain.",
@@ -32,7 +32,7 @@
   },
   "privacyPolicyUrl": "https://houtanrocky.github.io/deepdock-harness/privacy.html",
   "notes": [
-    "These answers describe version 0.2.2 and its current source. Review the disclosures before adding new data handling or integrations.",
+    "These answers describe version 0.2.3 and its current source. Review the disclosures before adding new data handling or integrations.",
     "Local processing and storage still count as handling user data. Do not select a no-data-collected answer.",
     "Users may include sensitive information in chat or source files; the unchecked categories are not a claim that arbitrary user content can never contain those details.",
     "The companion bridge uses HTTP on 127.0.0.1. Do not claim that every transport is encrypted.",

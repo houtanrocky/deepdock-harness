@@ -2,7 +2,7 @@
 
 This folder contains the extension upload ZIP, copy-ready listing and privacy fields, the blue whale icon, five screenshots, both promotional tiles, and the companion Windows bridge installer. Start with [UPLOAD-GUIDE.md](UPLOAD-GUIDE.md), or open [asset-preview.html](asset-preview.html) to see the artwork.
 
-Upload only `extension/deepdock-harness-0.2.2-chrome.zip` as the Chrome Web Store extension package. The store-assets ZIP is an artwork bundle to extract, and the bridge installer is a separate user download.
+Upload only `extension/deepdock-harness-0.2.3-chrome.zip` as the Chrome Web Store extension package. The store-assets ZIP is an artwork bundle to extract, and the bridge installer is a separate user download.
 
 ## Before submitting
 
@@ -14,7 +14,7 @@ Upload only `extension/deepdock-harness-0.2.2-chrome.zip` as the Chrome Web Stor
 
 ## Package contents
 
-- `extension/deepdock-harness-0.2.2-chrome.zip`: production MV3 extension ZIP built from this checkout.
+- `extension/deepdock-harness-0.2.3-chrome.zip`: production MV3 extension ZIP built from this checkout.
 - `extension/store-icon-128.png`: 128 px listing icon copied from the extension.
 - `screenshots/01-*.jpg` through `05-*.jpg`: five 1280 × 800 RGB JPEG screenshots.
 - `promotional/small-promo-440x280.jpg`: small promotional tile.
@@ -32,7 +32,7 @@ Upload only `extension/deepdock-harness-0.2.2-chrome.zip` as the Chrome Web Stor
 - `submission-checklist.md`: dashboard and asset checklist.
 - `screenshots/README.md`: capture method, example-data disclosure, and upload order.
 
-The package version is 0.2.2. Rebuild it with `npm run zip` after making release changes, then replace the ZIP here with the matching `.output/deepdock-harness-<version>-chrome.zip`.
+The package version is 0.2.3. Rebuild it with `npm run zip` after making release changes, then replace the ZIP here with the matching `.output/deepdock-harness-<version>-chrome.zip`.
 
 ## Rebuild the artwork
 

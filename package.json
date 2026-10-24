@@ -1,6 +1,6 @@
 {
   "name": "deepdock-harness",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "Give DeepSeek Chat a local workspace: file, shell, Git, and GitHub tools with permissions and resumable tasks.",

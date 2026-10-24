@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 — 2026-10-24
+
+- Report excessive tool calls as a call-limit error and explain that the entire rejected response was not executed.
+- Mark rejected responses in compact history without presenting their partially parsed calls as pending actions.
+- Recommend raw argument blocks after automatic JSON repair to help prevent repeated escaping errors.
+- Log successful JSON repair only after the entire response passes validation.
+
 ## 0.2.2 — 2026-10-24
 
 - Replace the duck with an original blue whale mark across the extension icons, panel, website, and store graphics.

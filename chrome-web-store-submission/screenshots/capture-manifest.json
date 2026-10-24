@@ -1,5 +1,5 @@
 {
-  "extensionVersion": "0.2.2",
+  "extensionVersion": "0.2.3",
   "captureMethod": "Playwright loading the actual built MV3 extension; no production panel styles or labels modified. The branded backdrop labels the local fixture and example data.",
   "screenshots": [
     {

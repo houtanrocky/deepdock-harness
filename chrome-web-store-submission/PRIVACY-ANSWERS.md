@@ -1,6 +1,6 @@
 # Privacy tab — copy-ready answers
 
-These answers match the version 0.2.2 extension package. The existing single-purpose, storage, and alarms explanations you entered describe the same behavior. The combined host explanation below also covers access to DeepSeek Chat.
+These answers match the version 0.2.3 extension package. The existing single-purpose, storage, and alarms explanations you entered describe the same behavior. The combined host explanation below also covers access to DeepSeek Chat.
 
 ## Single purpose description
 

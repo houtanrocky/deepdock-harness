@@ -2,7 +2,7 @@
 
 ## Prepared files
 
-- [x] Version 0.2.2 extension package and matching blue whale icon.
+- [x] Version 0.2.3 extension package and matching blue whale icon.
 - [x] Five 1280 × 800 screenshots with labeled example data.
 - [x] 440 × 280 small promotional tile and 1400 × 560 marquee.
 - [x] Opaque, 24-bit RGB JPEG format for screenshots and promo tiles.
@@ -13,7 +13,7 @@ These checks describe files prepared in this repository. The dashboard actions b
 
 ## Package and listing
 
-- [ ] Upload `extension/deepdock-harness-0.2.2-chrome.zip` as the extension package.
+- [ ] Upload `extension/deepdock-harness-0.2.3-chrome.zip` as the extension package.
 - [ ] Name: DeepDock Harness.
 - [ ] Category: Productivity; language: English.
 - [ ] Paste the short and detailed descriptions from `store-listing.md`.

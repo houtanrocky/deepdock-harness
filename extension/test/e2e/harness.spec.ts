@@ -197,7 +197,28 @@ test('packaged extension drives the semantic chat, repairs JSON, and records seq
   expect(bridge.applied[0].args.content).toBe(code);
   const saved = await checkpoint(chat, worker);
   expect(saved.conversationHistory.filter((entry: any) => entry.role === 'tool')).toHaveLength(2);
-  expect(await chat.evaluate(() => JSON.stringify((window as any).fixture.sent))).not.toContain(TOKEN);
+  const sent = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  expect(sent.some((message) => message.includes('previous tool JSON required automatic repair'))).toBe(true);
+  expect(JSON.stringify(sent)).not.toContain(TOKEN);
+});
+
+test('five valid calls reject atomically and recover with a dedicated limit message', async ({ chat, bridge, worker }) => {
+  await enable(chat);
+  const paths = ['Notification.java', 'NotificationEmailService.java', 'NotificationSmsService.java', 'DiscountPercentageStrategy.java', 'DiscountNoDiscountStrategy.java'];
+  const rejected = paths.map((path) => tool('dsh_read', { path })).join('\n');
+  await queue(chat, [rejected, tool('dsh_read', { path: paths[0] }), 'Read the notification interface.']);
+  await submit(chat, 'Read the notification interface');
+  await complete(chat, worker);
+  expect(bridge.calls.map((call) => call.args.path)).toEqual([paths[0]]);
+  const saved = await checkpoint(chat, worker);
+  const failed = saved.conversationHistory.find((entry: any) => entry.parseErrors?.length);
+  expect(failed.raw).toBe(rejected);
+  expect(failed.parseErrors[0].code).toBe('E_TOO_MANY_CALLS');
+  const sent = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  const recovery = sent.find((message) => message.includes('exceeded the tool-call limit'));
+  expect(recovery).toContain('No calls from that rejected response executed, including the first 3');
+  expect(recovery).toContain('"kind":"rejected-response"');
+  expect(recovery).not.toContain('Your JSON was malformed');
 });
 
 test('observed DeepSeek layout preserves raw HTML, YAML, and XML tool wrappers', async ({ chat, bridge, worker }) => {
