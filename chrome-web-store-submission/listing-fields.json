@@ -1,0 +1,26 @@
+{
+  "version": "0.2.2",
+  "title": "DeepDock Harness",
+  "summary": "An agent harness for DeepSeek: local tools, durable tasks, permissions, and handoff.",
+  "description": "Give DeepSeek Chat the tools to work on your local project.\n\nDeepDock Harness adds a coding-agent panel beside your DeepSeek conversation. Connect it to the companion bridge on your computer, choose a project folder, and let the chat read files, make focused edits, run checks, and work with Git and GitHub. Follow each step in the panel and choose when the agent needs your approval.\n\nWHAT YOU CAN DO\n\n- Explore a project: browse folders, read files, and search source code without manually pasting every file into chat.\n- Make focused changes: write and edit files, then inspect recorded before-and-after diffs.\n- Check the result: run local commands and review their output alongside the task.\n- Work with Git and GitHub: inspect changes, stage files, commit, configure a remote, and publish to an explicit repository using your existing authentication.\n- Keep track of the task: see tool explanations, results, errors, changed files, and the remaining iteration budget.\n- Continue unfinished work: saved conversation checkpoints let you explicitly resume after a reload. Requests with uncertain outcomes pause for review rather than silently replaying changes.\n- Optionally hand off a self-contained plan to a separately installed local DeepSeek Harness agent.\n\nPERMISSIONS YOU CONTROL\n\nChoose Ask for important commands, Ask every time, or Full access. Allow a requested action once, deny it, or stop a running task. The saved permission mode controls execution; the model cannot change that setting through its tool arguments.\n\nDirect file tools validate configured workspace paths. Full access permits unrestricted shell commands, and an optional local agent uses its own execution policy. Choose the mode to suit your project and review the workspace after an interrupted operation.\n\nGET STARTED\n\n1. Install the companion Windows bridge from the project website and choose a project folder.\n2. Copy its local pairing token into the extension's Settings.\n3. Open chat.deepseek.com and select Test connection, then Enable agent.\n4. Send a task in DeepSeek's normal chat composer. Start with a small read-only task, then try a focused edit and a check.\n\nThe bridge is a separate installation and currently targets Windows x64. A DeepSeek account and access to DeepSeek Chat are required. Git features require Git; GitHub features use your existing Git and GitHub CLI authentication. Optional agent handoff requires its own runtime and provider credentials.\n\nDATA AND PRIVACY\n\nTools run on your computer through an authenticated bridge at 127.0.0.1. Relevant prompts, source text, and tool results can be sent through your normal DeepSeek Chat conversation and are handled under DeepSeek's terms. Settings and task checkpoints are saved in your browser. The project operates no collection server and includes no analytics.\n\nWhen you use the GitHub account-status tool, its result includes the active GitHub username. That account identifier can appear in saved task results and relevant follow-up prompts.\n\nDeepDock Harness is open source under the MIT license. It is an independent project, not affiliated with or endorsed by DeepSeek. Listing screenshots show the real extension with a local demo and example project data.\n\nSetup and downloads: https://houtanrocky.github.io/deepdock-harness/\nHelp and bug reports: https://github.com/houtanrocky/deepdock-harness/issues\nPrivacy policy: https://houtanrocky.github.io/deepdock-harness/privacy.html",
+  "descriptionCharacters": 3451,
+  "category": "Productivity",
+  "language": "English",
+  "locale": "en",
+  "storeIcon": "extension/store-icon-128.png",
+  "promoVideoYoutubeUrl": null,
+  "screenshots": [
+    "screenshots/01-local-workspace.jpg",
+    "screenshots/02-review-file-diffs.jpg",
+    "screenshots/03-permission-controls.jpg",
+    "screenshots/04-resume-work.jpg",
+    "screenshots/05-local-bridge-setup.jpg"
+  ],
+  "smallPromoTile": "promotional/small-promo-440x280.jpg",
+  "marqueePromoTile": "promotional/marquee-1400x560.jpg",
+  "officialUrl": null,
+  "officialUrlNote": "Select the project site only after verifying ownership through your Google Search Console account; otherwise keep None.",
+  "homepageUrl": "https://houtanrocky.github.io/deepdock-harness/",
+  "supportUrl": "https://github.com/houtanrocky/deepdock-harness/issues",
+  "privacyPolicyUrl": "https://houtanrocky.github.io/deepdock-harness/privacy.html"
+}

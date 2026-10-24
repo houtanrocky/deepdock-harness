@@ -1,0 +1,36 @@
+{
+  "extensionVersion": "0.2.2",
+  "captureMethod": "Playwright loading the actual built MV3 extension; no production panel styles or labels modified. The branded backdrop labels the local fixture and example data.",
+  "screenshots": [
+    {
+      "file": "screenshots/01-local-workspace.jpg",
+      "width": 1280,
+      "height": 800,
+      "source": "Real extension running against the local DOM and tool-result fixture; example data."
+    },
+    {
+      "file": "screenshots/02-review-file-diffs.jpg",
+      "width": 1280,
+      "height": 800,
+      "source": "Real extension running against the local DOM and tool-result fixture; example data."
+    },
+    {
+      "file": "screenshots/03-permission-controls.jpg",
+      "width": 1280,
+      "height": 800,
+      "source": "Real extension running against the local DOM and tool-result fixture; example data."
+    },
+    {
+      "file": "screenshots/04-resume-work.jpg",
+      "width": 1280,
+      "height": 800,
+      "source": "Real extension running against the local DOM and tool-result fixture; example data."
+    },
+    {
+      "file": "screenshots/05-local-bridge-setup.jpg",
+      "width": 1280,
+      "height": 800,
+      "source": "Real extension running against the local DOM and tool-result fixture; example data."
+    }
+  ]
+}

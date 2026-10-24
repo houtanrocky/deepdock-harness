@@ -1,0 +1,41 @@
+{
+  "version": "0.2.2",
+  "singlePurposeDescription": "DeepDock Harness turns a conversation on DeepSeek Chat into a user-controlled coding agent by connecting that conversation to local project tools through a separately installed loopback bridge.",
+  "storageJustification": "Stores the user's bridge address and pairing token, selected workspace, permission mode, iteration settings, custom DeepSeek selectors, conversation checkpoints, and daily-send counters. Temporary handoff state and tab ownership leases use session storage. This supports local task execution and recovery after a page reload or service-worker suspension. Data is kept in Chrome extension storage on the user's device.",
+  "alarmsJustification": "Periodically wakes the extension service worker to check the status of a local-agent handoff if the DeepSeek tab is suspended. The alarm is created only while a handoff is being tracked and is cleared when no tracked handoffs remain.",
+  "hostPermissionJustification": "http://127.0.0.1/* lets the service worker send authenticated JSON tool requests to the user's separately installed local bridge. Its port is configurable; settings reject non-loopback addresses, and requests carry the local pairing token in an Authorization header. https://chat.deepseek.com/* lets the content script add the agent panel, read the active conversation, detect task submissions, and enter follow-up prompts for the user's coding task. No other websites are monitored.",
+  "usesRemoteCode": false,
+  "remoteCodeJustification": "All JavaScript used by the extension is bundled in the uploaded package. It does not fetch or evaluate remote JavaScript or WebAssembly, load remote script tags, or use eval or new Function. The local bridge returns JSON tool definitions, results, and status data. Tool execution and optional agent handoff happen in a separately installed local process, not as remotely loaded code executed by the browser extension.",
+  "dataUsage": {
+    "personallyIdentifiableInformation": true,
+    "healthInformation": false,
+    "financialAndPaymentInformation": false,
+    "authenticationInformation": true,
+    "personalCommunications": true,
+    "location": false,
+    "webHistory": true,
+    "userActivity": true,
+    "websiteContent": true
+  },
+  "dataCategoryExplanations": {
+    "personallyIdentifiableInformation": "When invoked, the GitHub authentication-status tool returns the active GitHub login. This account identifier can appear in saved tool results and relevant task prompts. The extension does not separately collect identity or contact-profile fields from DeepSeek.",
+    "authenticationInformation": "The local bridge pairing token is stored in extension storage and sent only to the loopback bridge.",
+    "personalCommunications": "User task prompts, assistant responses, and tool results are read, stored as conversation checkpoints, and included in relevant follow-up prompts.",
+    "webHistory": "Only the active DeepSeek conversation origin and pathname are used to separate saved conversations. The extension does not read the browser's general history.",
+    "userActivity": "Task submissions, task timestamps, iteration progress, and daily-send counts support the agent workflow. Composer click/Enter events detect a task; general keystrokes, mouse positions, and unrelated activity are not logged.",
+    "websiteContent": "Active DeepSeek conversation text and tool output are processed to carry out the coding task."
+  },
+  "certificationAnswers": {
+    "noSaleOrTransferOutsideApprovedUses": true,
+    "noUseOrTransferUnrelatedToSinglePurpose": true,
+    "noUseForCreditworthinessOrLending": true
+  },
+  "privacyPolicyUrl": "https://houtanrocky.github.io/deepdock-harness/privacy.html",
+  "notes": [
+    "These answers describe version 0.2.2 and its current source. Review the disclosures before adding new data handling or integrations.",
+    "Local processing and storage still count as handling user data. Do not select a no-data-collected answer.",
+    "Users may include sensitive information in chat or source files; the unchecked categories are not a claim that arbitrary user content can never contain those details.",
+    "The companion bridge uses HTTP on 127.0.0.1. Do not claim that every transport is encrypted.",
+    "Preparing these fields does not submit the listing or make the publisher's certifications."
+  ]
+}

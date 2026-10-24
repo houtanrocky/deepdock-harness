@@ -1,0 +1,97 @@
+{
+  "extensionVersion": "0.2.2",
+  "titleMatchesPackage": true,
+  "summaryMatchesPackage": true,
+  "summaryCharacters": 84,
+  "descriptionCharacters": 3451,
+  "assets": [
+    {
+      "file": "extension/store-icon-128.png",
+      "format": "PNG",
+      "width": 128,
+      "height": 128,
+      "bitsPerChannel": 8,
+      "channels": 4,
+      "alpha": true,
+      "bytes": 3070,
+      "sha256": "e56d3ae801ffffec0bd80697dc7e3e9eb2fa1be6f0ac32c7c915bb5c4caa1bee"
+    },
+    {
+      "file": "screenshots/01-local-workspace.jpg",
+      "format": "JPEG",
+      "width": 1280,
+      "height": 800,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 157585,
+      "sha256": "a58b12b206cf50f391f49844a3dced6b2672af4430ed9a0305c3cefe27890c57"
+    },
+    {
+      "file": "screenshots/02-review-file-diffs.jpg",
+      "format": "JPEG",
+      "width": 1280,
+      "height": 800,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 161451,
+      "sha256": "8cd26cfa4b649be1fe29ba3d13487b74ee629175aa03addeae56e25a4706378b"
+    },
+    {
+      "file": "screenshots/03-permission-controls.jpg",
+      "format": "JPEG",
+      "width": 1280,
+      "height": 800,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 145601,
+      "sha256": "ae8bba8d3ff2600729f1a64f336eae194791b6ea356aaf364fda08999ad239d0"
+    },
+    {
+      "file": "screenshots/04-resume-work.jpg",
+      "format": "JPEG",
+      "width": 1280,
+      "height": 800,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 155446,
+      "sha256": "1d09589966d776689ea11413c2f58d19d418f9a22af9a405e80ff6136e046efd"
+    },
+    {
+      "file": "screenshots/05-local-bridge-setup.jpg",
+      "format": "JPEG",
+      "width": 1280,
+      "height": 800,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 132931,
+      "sha256": "58d3a685b2a141dffbc123dc9e84a870c4dd2d5475934b49821fadd4d4b3263c"
+    },
+    {
+      "file": "promotional/small-promo-440x280.jpg",
+      "format": "JPEG",
+      "width": 440,
+      "height": 280,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 27191,
+      "sha256": "e5376c9d2651e00827038b49033ffd18e2926b3fcfb73d9c982db6ad17f2eee2"
+    },
+    {
+      "file": "promotional/marquee-1400x560.jpg",
+      "format": "JPEG",
+      "width": 1400,
+      "height": 560,
+      "bitsPerChannel": 8,
+      "channels": 3,
+      "alpha": false,
+      "bytes": 80330,
+      "sha256": "c9ce9348ad4d0bd8a8e3994bc9aff0730f2ba9c29dfe2e0c44d19a80a50e2bc9"
+    }
+  ]
+}
