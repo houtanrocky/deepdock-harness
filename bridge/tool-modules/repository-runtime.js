@@ -54,8 +54,9 @@ function createRepositoryRuntime(runCaptured) {
   async function repository(ctx, args) {
     const cwd = directory(ctx, args);
     const root = (await command('git', ['rev-parse', '--show-toplevel'], cwd)).stdout.trim();
-    const actual = fs.realpathSync(root);
-    const expected = fs.realpathSync(cwd);
+    // Native canonical paths also expand Windows 8.3 aliases such as RUNNER~1.
+    const actual = fs.realpathSync.native(root);
+    const expected = fs.realpathSync.native(cwd);
     if (path.relative(expected, actual) !== '') throw new ToolError('E_ARGS_INVALID', 'path must be the repository root itself; refusing to operate on an ancestor repository. Initialize this project with dsh_git_init if needed.');
     return cwd;
   }

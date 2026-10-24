@@ -8,6 +8,7 @@ First public release of **DeepDock Harness**.
 - Task activity, file diffs, workspace selection, saved permission modes, cancellation, and explicit recovery from conversation checkpoints.
 - Authenticated loopback bridge with file, search, shell, Git, and GitHub tools, plus optional local agent handoff.
 - Windows x64 bridge installer with a bundled Node.js runtime and complete tool-module packaging.
+- Native Windows path comparison for Git operations, including workspaces reached through short-path aliases.
 - Consistent DeepDock Harness branding, a public project website, privacy information, and contributor guides.
 - Windows regression checks and Chromium extension integration in GitHub Actions.
 

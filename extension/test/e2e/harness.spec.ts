@@ -58,6 +58,9 @@ test('a legacy task falsely completed on DSML offers Resume without replaying th
   await expect(chat.locator('#dshpro-timeline')).toContainText('Unexecuted native tool markup');
   await queue(chat, [tool('dsh_read', { path: 'review.txt' }), 'Read completed.']);
   await chat.locator('#dshpro-resume').click();
+  // The legacy checkpoint is already marked completed. Wait for the resumed
+  // run to execute its tool before polling for the new completed checkpoint.
+  await expect.poll(() => bridge.calls.map((call) => call.tool)).toEqual(['dsh_read']);
   await complete(chat, worker);
   expect(bridge.calls.map((call) => call.tool)).toEqual(['dsh_read']);
 });

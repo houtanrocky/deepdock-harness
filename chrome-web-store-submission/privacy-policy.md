@@ -36,8 +36,8 @@ The extension communicates with the bridge over HTTP on the loopback interface (
 
 ## Changes and contact
 
-Material changes to these practices will be reflected in this policy and the Chrome Web Store disclosures. For privacy questions, contact [PUBLIC PRIVACY CONTACT EMAIL].
+Material changes to these practices will be reflected in this policy and the Chrome Web Store disclosures. For privacy questions without sensitive data, use the [project issue tracker](https://github.com/houtanrocky/deepdock-harness/issues). Send sensitive security reports through [private vulnerability reporting](https://github.com/houtanrocky/deepdock-harness/security/advisories/new).
 
 ---
 
-Publisher action required: replace all bracketed placeholders, confirm the data flow for the exact release, and publish this policy at a stable public HTTPS URL before submitting.
+This policy applies to the extension and companion bridge distributed through this project's GitHub Releases. Review it when the product's data handling changes.

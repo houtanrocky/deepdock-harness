@@ -69,7 +69,7 @@ test('Git operations refuse an ancestor repository and init targets only the exp
   git(f.workspace, 'init', '--initial-branch=parent');
   await assert.rejects(runTool('dsh_git_remote', { path: 'project' }, f.ctx), /repository root itself/);
   await runTool('dsh_git_init', { path: 'project' }, f.ctx);
-  assert.equal(fs.realpathSync(git(f.project, 'rev-parse', '--show-toplevel')), fs.realpathSync(f.project));
+  assert.equal(fs.realpathSync.native(git(f.project, 'rev-parse', '--show-toplevel')), fs.realpathSync.native(f.project));
   assert.equal(git(f.workspace, 'symbolic-ref', '--short', 'HEAD'), 'parent');
   await assert.rejects(runTool('dsh_git_init', { path: '../outside' }, f.ctx), (error) => error.code === 'E_PATH_ESCAPE');
 });
