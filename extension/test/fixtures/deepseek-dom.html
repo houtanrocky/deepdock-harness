@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>DeepSeek observed layout fixture</title></head><body>
+<!-- Minimal reproduction of the supplied DOM, with sidebar/personal data omitted. -->
+<style>.ds-button{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;cursor:pointer}.ds-button--disabled{opacity:.4}.ds-markdown{white-space:pre-wrap}</style>
+<div class="ds-virtual-list-visible-items" id="messages"></div>
+<div class="_77cefa5 _3d616d3"><div class="_020ab5b">
+  <div class="_24fad49"><textarea class="_27c9245 ds-scroll-area d96f2d2a" placeholder="Message DeepSeek" rows="2"></textarea></div>
+  <div class="ec4f5d61"><div class="bf38813a">
+    <div role="button" class="ds-button ds-button--iconLabelPrimary f02f0e25" tabindex="0"><svg><path d="M5.5498 9.75V5"></path></svg></div>
+    <input type="file" multiple style="display:none">
+    <div style="width:fit-content"><div role="button" class="ds-button ds-button--primary ds-button--filled ds-button--circle ds-button--m ds-button--disabled _52c986b bd74640a">
+      <div class="ds-button__background"></div><div class="ds-button__icon"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8.3125 0.980206C8.66767 1.05312 8.97902 1.2042 9.2627 1.43235L9 3.95579V15.0417H7V3.95579Z"></path></svg></div>
+    </div></div>
+  </div></div>
+</div></div>
+<script>
+window.fixture={responses:[],sent:[],calls:[],alarms:[],continueClicks:[],generating:false,nativeAttachment:false,ignoreSend:false};
+const input=document.querySelector('textarea');
+const button=document.querySelector('.ds-button--primary.ds-button--circle');
+const icon=button.querySelector('path');
+const arrow=icon.getAttribute('d');
+function inputChanged(){button.classList.toggle('ds-button--disabled',!input.value.trim()&&!fixture.nativeAttachment&&!fixture.generating);}
+input.addEventListener('input',inputChanged);
+function finishResponse(item,markdown,response){
+  const render=()=>{if(response.html)markdown.innerHTML=response.html;else markdown.textContent=response.text??response;};
+  if(response.renderDelay)setTimeout(render,response.renderDelay);else render();
+  fixture.generating=false;icon.setAttribute('d',arrow);inputChanged();
+  item.querySelectorAll(':scope > .ds-flex').forEach(node=>node.remove());
+  const actions=document.createElement('div');actions.className='ds-flex _0a3d93b';
+  actions.innerHTML='<div class="ds-flex _965abe9"><div aria-disabled="false" role="button" class="ds-button db183363"><svg width="16" height="16"><path d="M7.92136 0.349152C10.3744 0.349234 12.5564 1.5052 13.9557 3.29894L15.1281 2.12759"></path></svg></div></div>';
+  item.append(actions);
+  if(response.continuation){
+    const control=document.createElement('button');control.textContent=response.continueLabel||'Continue';
+    if(response.continueEnableDelay){control.disabled=true;setTimeout(()=>{control.disabled=false;},response.continueEnableDelay);}
+    control.addEventListener('click',()=>{
+      fixture.continueClicks.push(control.textContent);
+      if(response.ignoreContinue)return;
+      control.remove();fixture.generating=true;button.classList.remove('ds-button--disabled');
+      const showStop=()=>icon.setAttribute('d','M4 4H12V12H4Z');
+      if(response.continuation.stopDelay)setTimeout(showStop,response.continuation.stopDelay);else showStop();
+      if(!response.continuation.hold)setTimeout(()=>finishResponse(item,markdown,response.continuation),response.continuation.delay||180);
+    });
+    item.append(control);
+  }
+}
+function send(){
+  if(fixture.generating){fixture.generating=false;icon.setAttribute('d',arrow);inputChanged();return;}
+  if(!input.value.trim()&&!fixture.nativeAttachment)return;
+  if(fixture.ignoreSend)return;
+  if(fixture.migrate){history.pushState(null,'','/a/chat/s/new-conversation');fixture.migrate=false;}
+  fixture.sent.push(input.value||'[native attachment]');fixture.nativeAttachment=false;
+  input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));
+  const response=fixture.responses.shift();if(response===undefined)throw Error('No observed-layout response queued');
+  fixture.generating=true;button.classList.remove('ds-button--disabled');
+  const showStop=()=>icon.setAttribute('d','M4 4H12V12H4Z');
+  if(response.stopDelay)setTimeout(showStop,response.stopDelay);else showStop();
+  if(response.stopGap)setTimeout(()=>{icon.setAttribute('d',arrow);setTimeout(showStop,response.stopGap.duration);},response.stopGap.after);
+  const item=response.reusePrevious?document.querySelector('#messages').lastElementChild:document.createElement('div');
+  if(!response.reusePrevious){item.dataset.virtualListItemKey=String(fixture.sent.length*2);item.innerHTML=response.semantic?'<article class="ds-message" data-message-author-role="assistant"><div class="ds-markdown"></div></article>':'<div class="ds-message _63c77b1"><div class="ds-markdown ds-assistant-message-main-content"></div></div>';}
+  const markdown=item.querySelector('.ds-markdown');markdown.textContent=response.partial||'Protocol';document.querySelector('#messages').append(item);
+  // Keep valid-looking partial output visible before the sibling footer arrives.
+  if(!response.hold)setTimeout(()=>finishResponse(item,markdown,response),response.delay||180);
+}
+button.addEventListener('click',send);
+input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}});
+</script></body></html>

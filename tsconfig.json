@@ -1,0 +1,12 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["wxt.config.ts", "extension/**/*.ts", "extension/src/**/*.js", "playwright.config.ts"],
+  "exclude": ["node_modules", ".output", "extension/test"]
+}

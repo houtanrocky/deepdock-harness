@@ -1,0 +1,29 @@
+{
+  "name": "deepdock",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A browser agent harness for DeepSeek with a local execution bridge",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "dev:manual": "node scripts/dev-manual.mjs",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "postinstall": "wxt prepare",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "test": "node --test extension/test/*.test.cjs",
+    "test:e2e": "npm run build && playwright test",
+    "check": "npm run typecheck && npm test && npm run test:e2e",
+    "bridge": "node scripts/bridge.mjs start",
+    "bridge:stop": "node scripts/bridge.mjs stop"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "wxt": "0.21.4"
+  }
+}

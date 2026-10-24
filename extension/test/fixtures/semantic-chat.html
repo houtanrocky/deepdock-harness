@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>DeepSeek semantic chat fixture</title></head><body>
+<main id="messages"></main>
+<form><textarea id="chat-input" aria-label="Message DeepSeek"></textarea><button type="submit" data-testid="send-button">Send</button></form>
+<script>
+window.fixture = { responses: [], sent: [], generating: false, ignoreSend: false, migrate: false };
+const input = document.querySelector('textarea');
+function send() {
+  if (!input.value.trim() || fixture.ignoreSend) return;
+  if (fixture.migrate) { history.pushState(null, '', '/a/chat/s/new-conversation'); fixture.migrate = false; }
+  fixture.sent.push(input.value);
+  input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true }));
+  const response = fixture.responses.shift();
+  if (response === undefined) throw Error('No semantic fixture response queued');
+  fixture.generating = true;
+  const stop = document.createElement('button'); stop.setAttribute('aria-label', 'Stop generating'); document.body.append(stop);
+  stop.onclick = () => { fixture.generating = false; stop.remove(); };
+  const assistant = document.createElement('article'); assistant.dataset.messageAuthorRole = 'assistant'; assistant.setAttribute('aria-busy', 'true');
+  const pre = document.createElement('pre'); pre.textContent = response.partial || String(response).slice(0, 15);
+  assistant.append(pre); document.querySelector('main').append(assistant);
+  if (response.hold) return;
+  setTimeout(() => { pre.textContent = response.text || response; assistant.setAttribute('aria-busy', 'false'); fixture.generating = false; stop.remove(); }, response.delay || 150);
+}
+document.querySelector('[data-testid="send-button"]').addEventListener('click', (event) => { event.preventDefault(); send(); });
+input.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send(); } });
+document.querySelector('form').addEventListener('submit', (event) => { event.preventDefault(); send(); });
+</script>
+</body></html>
