@@ -41,7 +41,7 @@ The harness and adapter are ordinary ES modules with explicit dependencies. Unit
 | `npm run build` | Build production files in `.output/chrome-mv3/` |
 | `npm run zip` | Create a distributable extension ZIP in `.output/` |
 
-The public project site is a buildless page in `docs/`, published by GitHub Pages from `main` and `/docs`. Keep its release links, privacy policy, and screenshots aligned with the release. `docs/assets/social-card.svg` is the source for the PNG social preview. GitHub Actions runs Windows regressions and Chromium integration checks on pushes and pull requests.
+The public project site is a buildless page in `docs/`, published from `main` by `.github/workflows/pages.yml` to GitHub Pages. Keep its release links, privacy policy, and screenshots aligned with the release. `docs/assets/social-card.svg` is the source for the PNG social preview. GitHub Actions runs Windows regressions and Chromium integration checks on pushes and pull requests.
 
 Browser tests load the production build in a temporary browser profile. They use actual extension storage, messaging, alarms, and service workers, with local chat fixtures and an authenticated HTTP fixture bridge on an ephemeral loopback port. They never contact DeepSeek, use your bridge configuration, execute your local tools, or publish repositories. Traces and screenshots for failed tests are in `test-results/`; the panel test also captures desktop and mobile screenshots on success.
 

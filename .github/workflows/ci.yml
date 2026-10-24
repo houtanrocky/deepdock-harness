@@ -33,6 +33,7 @@ jobs:
           name: deepdock-harness-chrome
           path: .output/deepdock-harness-*-chrome.zip
           if-no-files-found: error
+          include-hidden-files: true
   browser:
     name: Chromium extension integration
     runs-on: ubuntu-latest
