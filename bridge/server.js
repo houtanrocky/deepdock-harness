@@ -1,5 +1,5 @@
 'use strict';
-// DeepDock - server.js
+// DeepDock Harness - server.js
 // 本地桥接服务：HTTP 路由 + Bearer token 鉴权 + 限流 + 审计。
 // 仅绑定 127.0.0.1。零 npm 依赖。启动：node server.js（需先运行 scripts/pair.ps1 生成 token）。
 // 预留 /mcp 路由分支：将来可在同一 handler 层挂 streamable-HTTP MCP 端点，
@@ -22,11 +22,11 @@ let config;
 try {
   config = loadConfig(CONFIG_DIR);
 } catch (err) {
-  console.error('[DeepDock] config load failed:', err.message);
+  console.error('[DeepDock Harness] config load failed:', err.message);
   process.exit(1);
 }
 if (!config.token || String(config.token).length < 32) {
-  console.error('[DeepDock] config.json token is empty. Run scripts\\pair.ps1 first.');
+  console.error('[DeepDock Harness] config.json token is empty. Run scripts\\pair.ps1 first.');
   process.exit(1);
 }
 
@@ -301,15 +301,15 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(config.port, '127.0.0.1', () => {
-  console.log(`[DeepDock] bridge listening on http://127.0.0.1:${config.port}`);
-  console.log(`[DeepDock] allowedRoots: ${config.allowedRoots.join(' ; ')}`);
+  console.log(`[DeepDock Harness] bridge listening on http://127.0.0.1:${config.port}`);
+  console.log(`[DeepDock Harness] allowedRoots: ${config.allowedRoots.join(' ; ')}`);
   const probe = dshProbe(config);
-  console.log(`[DeepDock] dsh runtime: ${probe.binFound ? 'found' : 'NOT FOUND'} (${probe.bin || '-'})`);
+  console.log(`[DeepDock Harness] dsh runtime: ${probe.binFound ? 'found' : 'NOT FOUND'} (${probe.bin || '-'})`);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[DeepDock] uncaught:', err && err.stack);
+  console.error('[DeepDock Harness] uncaught:', err && err.stack);
 });
 process.on('unhandledRejection', (err) => {
-  console.error('[DeepDock] unhandledRejection:', String(err));
+  console.error('[DeepDock Harness] unhandledRejection:', String(err));
 });

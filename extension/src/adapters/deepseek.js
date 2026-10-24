@@ -1,7 +1,7 @@
 import { protocol } from '../core/protocol.js';
 
 // DeepSeek-specific DOM behavior stays behind this adapter. No tools execute here.
-export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors, checkRun, fail, aborted, responseTimeout = 180000, incompleteRenderGrace = 2000 }) {
+export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors, checkRun, fail, aborted, responseTimeout = 180000, incompleteRenderGrace = 8000 }) {
   const { document, getComputedStyle, MutationObserver, HTMLTextAreaElement, HTMLInputElement,
     Event, InputEvent, KeyboardEvent, getSelection, setTimeout, clearTimeout } = platform;
   function selList(kind) {
@@ -193,7 +193,7 @@ export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors,
           // a terminal signal AND settled text; elapsed time alone never finishes
           // a response. Ignore panel mutations that do not change this snapshot.
           if (candidate?.el === current.el && candidate.raw === current.raw) return;
-          const incomplete = protocol.parse(current.raw).errors.some((error) => error.code !== 'E_UNSUPPORTED_TOOL_FORMAT' && /incomplete|closing|framing|placeholder|invalid raw argument name/i.test(error.message));
+          const incomplete = protocol.parse(current.raw).errors.some((error) => error.code !== 'E_UNSUPPORTED_TOOL_FORMAT' && /incomplete|closing|framing|placeholder|invalid raw argument name|expected a JSON object after the opening DSH marker/i.test(error.message));
           const settleMs = incomplete ? incompleteRenderGrace : 250;
           candidate = { ...current, since: Date.now() }; clearTimeout(settleTimer);
           settleTimer = setTimeout(() => {

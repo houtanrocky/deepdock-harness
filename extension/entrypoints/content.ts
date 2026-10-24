@@ -12,6 +12,6 @@ export default defineContentScript({
       scheduleInterval: (callback: () => void, ms: number) => ctx.setInterval(callback, ms),
     });
     ctx.onInvalidated(() => { void harness.dispose(); });
-    void harness.init().catch((error: unknown) => console.error('DeepDock initialization failed:', error));
+    void harness.init().catch((error: unknown) => console.error('DeepDock Harness initialization failed:', error));
   },
 });

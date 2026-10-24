@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101714">
+  <title>DeepDock Harness — Local coding tools for DeepSeek Chat</title>
+  <meta name="description" content="Give DeepSeek Chat a local workspace. An open-source browser extension with 17 file, shell, Git, and GitHub tools, permission controls, and resumable tasks.">
+  <link rel="canonical" href="https://houtanrocky.github.io/deepdock-harness/">
+  <link rel="icon" type="image/png" href="assets/icon128.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DeepDock Harness">
+  <meta property="og:title" content="DeepSeek, meet your workspace. — DeepDock Harness">
+  <meta property="og:description" content="Local coding tools. Visible progress. Your permission. An open-source harness for DeepSeek Chat.">
+  <meta property="og:url" content="https://houtanrocky.github.io/deepdock-harness/">
+  <meta property="og:image" content="https://houtanrocky.github.io/deepdock-harness/assets/social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="DeepDock Harness: give DeepSeek Chat a local workspace.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DeepDock Harness — DeepSeek, meet your workspace.">
+  <meta name="twitter:description" content="An open-source browser harness with local file, shell, Git, and GitHub tools.">
+  <meta name="twitter:image" content="https://houtanrocky.github.io/deepdock-harness/assets/social-preview.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DeepDock Harness","applicationCategory":"DeveloperApplication","operatingSystem":"Windows","softwareVersion":"0.2.1","license":"https://opensource.org/license/mit","url":"https://houtanrocky.github.io/deepdock-harness/","downloadUrl":"https://github.com/houtanrocky/deepdock-harness/releases/latest","codeRepository":"https://github.com/houtanrocky/deepdock-harness","description":"An open-source browser agent harness that connects DeepSeek Chat to local file, shell, Git, and GitHub tools.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"houtanrocky","url":"https://github.com/houtanrocky"}}
+  </script>
+  <script src="site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="./" aria-label="DeepDock Harness home"><img src="assets/icon128.png" width="36" height="36" alt=""><span>DeepDock <strong>Harness</strong></span></a>
+      <div class="nav-links"><a href="#how-it-works">How it works</a><a href="#install">Get started</a><a class="github-link" href="https://github.com/houtanrocky/deepdock-harness">GitHub <span aria-hidden="true">↗</span></a></div>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> OPEN SOURCE. ON YOUR TERMS.</p>
+        <h1 id="hero-title">DeepSeek, meet<br>your <span>workspace.</span></h1>
+        <p class="hero-description">Your chat already understands the task. Give it the tools to do the work.</p>
+        <p class="hero-detail">DeepDock Harness connects DeepSeek Chat to files, commands, Git, and GitHub on your computer—with visible progress and permissions you control.</p>
+        <div class="actions"><a class="button primary" href="#install">Get DeepDock Harness <span aria-hidden="true">↓</span></a><a class="text-link" href="https://github.com/houtanrocky/deepdock-harness">Explore the source <span aria-hidden="true">↗</span></a></div>
+        <p class="hero-meta">Chrome &amp; Edge <span>·</span> Windows bridge <span>·</span> MIT licensed</p>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-toolbar"><div class="demo-brand"><img src="assets/icon128.png" width="25" height="25" alt=""> DeepDock Harness</div><span class="connection"><span class="status-dot" aria-hidden="true"></span> LOCAL BRIDGE</span></div>
+        <div class="demo-content">
+          <div class="demo-task"><span class="mono-label">THE TASK</span><p>Change the greeting to “Welcome” and run its check.</p></div>
+          <div class="demo-plan"><span class="demo-avatar" aria-hidden="true">↳</span><p>I’ll read the greeting, make the edit, and check the result.</p></div>
+          <div class="demo-step" data-step="0"><span class="step-icon" aria-hidden="true">01</span><div><span class="step-label">Read the current file</span><code>app.js</code></div><span class="step-status">READY</span></div>
+          <div class="demo-step" data-step="1"><span class="step-icon" aria-hidden="true">02</span><div><span class="step-label">Make a focused edit</span><code>Hello → Welcome</code></div><span class="step-status">READY</span></div>
+          <div class="demo-step" data-step="2"><span class="step-icon" aria-hidden="true">03</span><div><span class="step-label">Check the change</span><code>node check-greeting.js</code></div><span class="step-status">READY</span></div>
+          <div class="demo-result" role="status" aria-live="polite">Follow a small task from intent to result.</div>
+          <button class="demo-play" type="button"><span aria-hidden="true">▶</span> Play the walkthrough</button>
+        </div>
+        <p class="demo-caption">Illustrative walkthrough. No files or commands run from this page.</p>
+      </div>
+    </section>
+    <div class="capability-strip wrap" aria-label="At a glance"><p><strong>17</strong> workspace tools</p><p><strong>3</strong> permission modes</p><p><strong>1</strong> task loop per conversation</p><p><strong>Yours.</strong> The code, the controls, the workspace.</p></div>
+    <section class="section wrap" id="how-it-works" aria-labelledby="workflow-title">
+      <div class="section-intro"><p class="eyebrow">FROM CONVERSATION TO CHANGES</p><h2 id="workflow-title">A short path<br>to actual work.</h2><p>Keep using the DeepSeek conversation you know. The harness handles the bridge to your project.</p></div>
+      <ol class="workflow"><li><span>01 / CHAT</span><h3>Describe the task.</h3><p>Use DeepSeek’s normal chat composer. The harness reads the response and validates its tool calls.</p></li><li><span>02 / CONNECT</span><h3>Reach your workspace.</h3><p>An authenticated bridge on <code>127.0.0.1</code> runs tools within your configured project folder.</p></li><li><span>03 / REVIEW</span><h3>Follow what happens.</h3><p>See tool explanations, results, file diffs, and approvals. Stop the task when you need to.</p></li><li><span>04 / CONTINUE</span><h3>Keep the context.</h3><p>Tool results return to the chat. Saved checkpoints let you explicitly resume unfinished work.</p></li></ol>
+    </section>
+    <section class="section workspace-section wrap" aria-labelledby="workspace-title">
+      <div class="workspace-copy"><p class="eyebrow">A COCKPIT FOR THE WORK</p><h2 id="workspace-title">The next step<br>stays in view.</h2><p class="section-lead">A compact panel beside your conversation. Enough context to understand the task, enough control to step in.</p><div class="editorial-feature"><span>01</span><div><h3>Approve at your pace.</h3><p>Ask for important commands, ask every time, or choose full access. The saved permission mode is yours to set.</p></div></div><div class="editorial-feature"><span>02</span><div><h3>Recover deliberately.</h3><p>Reloading offers Resume. An uncertain tool request pauses for review instead of silently replaying a change.</p></div></div><div class="editorial-feature"><span>03</span><div><h3>Go beyond files.</h3><p>Inspect Git diffs, stage and commit changes, and publish to an explicit GitHub destination using your existing authentication.</p></div></div></div>
+      <figure class="product-figure"><div class="figure-label"><span class="status-dot" aria-hidden="true"></span> THE ACTUAL EXTENSION PANEL</div><img class="product-shot" src="assets/workspace-panel.png" width="420" height="1000" alt="DeepDock Harness panel showing a completed greeting edit, tool activity, permission controls, and changed files." loading="lazy"><figcaption>Captured with the real extension and a local test fixture. Example project data.</figcaption></figure>
+    </section>
+    <section class="tools-section section" aria-labelledby="tools-title"><div class="wrap"><div class="tools-heading"><div><p class="eyebrow">A USEFUL TOOLBOX</p><h2 id="tools-title">Small tools.<br>Real capabilities.</h2></div><p>File reads and edits, shell commands, Git workflows, and optional handoff to a separately installed local agent.</p></div><div class="tool-list"><div><span>FILES &amp; SEARCH</span><p>Browse. Read. Write. Edit. Search.</p><code>dsh_tree · dsh_read · dsh_write · dsh_edit · dsh_search</code></div><div><span>COMMANDS &amp; INSPECTION</span><p>Run a check. Inspect the result.</p><code>dsh_bash · dsh_git_status · dsh_git_diff · dsh_log</code></div><div><span>GIT &amp; GITHUB</span><p>Take a change from local to published.</p><code>init · add · commit · remote · push · auth status · create</code></div><div><span>LOCAL AGENT HANDOFF</span><p>Pass on a self-contained plan.</p><code>dsh_handoff → separately configured dsh runtime</code></div></div><p class="tools-note">The bridge publishes its live tool catalog. Handoff needs its own runtime and provider credentials.</p></div></section>
+    <section class="section wrap install-section" id="install" aria-labelledby="install-title"><div class="section-intro"><p class="eyebrow">GET YOUR WORKSPACE CONNECTED</p><h2 id="install-title">A little setup.<br>Then, back to chat.</h2><p>The browser extension and local bridge work together. Choose a download or build from source.</p></div><div class="install-box"><div class="install-tabs" aria-label="Installation method"><button class="install-tab active" type="button" aria-pressed="true" data-install="download">Windows download</button><button class="install-tab" type="button" aria-pressed="false" data-install="source">Build from source</button></div><div id="install-download" class="install-content"><div class="download-pair"><a class="download-item" href="https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/deepdock-harness-0.2.1-chrome.zip"><span>01 / BROWSER EXTENSION</span><strong>Download extension <span aria-hidden="true">↗</span></strong><small>v0.2.1 · Chrome / Edge · ZIP</small></a><a class="download-item" href="https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe"><span>02 / LOCAL BRIDGE</span><strong>Download bridge <span aria-hidden="true">↗</span></strong><small>v0.1.0 · Windows x64 · Unsigned installer</small></a></div><ol class="install-steps"><li>Install the bridge and choose your project folder. It copies your pairing token to the clipboard.</li><li>Extract the extension ZIP. Open <code>chrome://extensions</code> or <code>edge://extensions</code>, enable Developer mode, and choose <strong>Load unpacked</strong>. Select the extracted folder containing <code>manifest.json</code>.</li><li>Open <a href="https://chat.deepseek.com/">DeepSeek Chat</a>. In the DeepDock Harness panel, open Settings and paste the token.</li><li>Choose <strong>Test connection</strong>, then <strong>Enable agent</strong>. Send your task in the normal chat composer.</li></ol><p class="install-note">This is an unpacked extension release. No Chrome Web Store listing is required. The installer bundles Node.js; Git and GitHub CLI are optional for their respective tools.</p></div><div id="install-source" class="install-content" hidden><p>Use Windows, Node.js 22.18 or newer, npm, and Chrome or Edge 120 or newer.</p><div class="code-block"><button class="copy-button" type="button" data-copy="source-code">Copy</button><pre><code id="source-code">git clone https://github.com/houtanrocky/deepdock-harness.git
+cd deepdock-harness
+npm ci
+npm run build
+powershell -ExecutionPolicy Bypass -File scripts/pair.ps1</code></pre></div><p>Load <code>.output/chrome-mv3/</code> as an unpacked extension. Open DeepSeek Chat, paste the copied token in Settings, test the connection, and enable the agent.</p><a class="text-link" href="https://github.com/houtanrocky/deepdock-harness#quick-start">Read the complete setup guide <span aria-hidden="true">↗</span></a></div><p class="copy-status" role="status" aria-live="polite"></p></div></section>
+    <section class="section wrap faq-section" aria-labelledby="faq-title"><div><p class="eyebrow">BEFORE YOU DOCK</p><h2 id="faq-title">A few useful details.</h2></div><div class="faq-list"><details><summary>Where does my code go?</summary><p>Tools execute on your computer through the loopback bridge. Relevant prompts, code, and tool results can be included in your DeepSeek conversation and are handled under DeepSeek’s own terms. DeepDock Harness operates no collection server and includes no analytics. See the <a href="privacy.html">privacy policy</a>.</p></details><details><summary>Do I need an API key?</summary><p>The browser workflow uses your existing DeepSeek Chat session. Optional handoff to a local DeepSeek Harness agent requires that separate runtime and its provider credentials. A DeepSeek account and access to its models are not included.</p></details><details><summary>What can the agent change?</summary><p>The bridge’s file tools validate configured workspace boundaries. Your saved permission mode controls approval prompts. Full access permits unrestricted shell commands, and a local handoff uses that agent’s own policy, so choose the mode to suit your project.</p></details><details><summary>Can I stop or resume a task?</summary><p>Yes. Stop cancels the task loop, and reloading offers explicit Resume for unfinished work. Review your files after an interrupted request: the harness avoids automatic replay after an uncertain outcome, but exactly-once execution is not guaranteed.</p></details><details><summary>Is this an official DeepSeek product?</summary><p>No. DeepDock Harness is an independent MIT-licensed project. DeepSeek Chat can change its page layout; the extension includes diagnostics and selector overrides to help troubleshoot changes.</p></details></div></section>
+    <section class="closing wrap"><img src="assets/icon128.png" width="58" height="58" alt=""><h2>Your workspace.<br>Your next move.</h2><p>Try the harness, read the code, or help shape what comes next.</p><div class="actions"><a class="button primary" href="#install">Connect your workspace <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/houtanrocky/deepdock-harness/issues">Share an idea <span aria-hidden="true">↗</span></a></div></section>
+  </main>
+  <footer class="site-footer wrap"><a class="brand" href="./"><span>DeepDock <strong>Harness</strong></span></a><p>Built for useful work. Open by design.</p><div><a href="https://github.com/houtanrocky/deepdock-harness">GitHub</a><a href="https://github.com/houtanrocky/deepdock-harness/blob/main/DEVELOPMENT.md">Docs</a><a href="privacy.html">Privacy</a><a href="https://github.com/houtanrocky/deepdock-harness/blob/main/LICENSE">MIT license</a></div></footer>
+</body>
+</html>

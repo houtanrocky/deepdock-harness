@@ -485,7 +485,9 @@ test('incident fragments and placeholder output recover without false completion
   await enable(chat);
   await queue(chat, ['⟦DS', 'text', tool('dsh_write', { path: 'report.md', content: 'First verified chunk.' }), 'DSH:DONE:Written.']);
   await submit(chat, 'Write the incident report');
-  await complete(chat, worker, 25_000);
+  // Both rejected fragments can use the eight-second rendering grace, in
+  // addition to the cancellable send previews and the final tool round trip.
+  await complete(chat, worker, 45_000);
   expect(bridge.applied.map((call) => call.args.path)).toEqual(['report.md']);
   const saved = await checkpoint(chat, worker);
   expect(saved.conversationHistory.filter((entry: any) => entry.kind === 'parse-error')).toHaveLength(2);
@@ -604,7 +606,7 @@ test('MV3 service worker restarts retain configuration and saved conversation st
 });
 
 test('modern panel supports labeled settings, keyboard collapse, validation, and small screens', async ({ chat, worker }, info) => {
-  await expect(chat.getByRole('region', { name: 'DeepDock agent harness' })).toBeVisible();
+  await expect(chat.getByRole('region', { name: 'DeepDock Harness' })).toBeVisible();
   await chat.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(chat.getByLabel('Bridge token', { exact: true })).toHaveAttribute('type', 'password');
   await expect(chat.getByLabel('Bridge token', { exact: true })).toHaveValue('');

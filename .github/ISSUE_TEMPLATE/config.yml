@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup and developer documentation
+    url: https://github.com/houtanrocky/deepdock-harness#quick-start
+    about: Installation, pairing, permissions, and development checks.
+  - name: Report a security vulnerability privately
+    url: https://github.com/houtanrocky/deepdock-harness/security/advisories/new
+    about: Keep tokens and sensitive reports out of public issues.

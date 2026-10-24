@@ -206,7 +206,7 @@ test('write parse failures request small chunks; a third pauses with exact raw J
   assert.equal(h.saved().retryCount, 3);
   assert.equal(h.saved().stage, 'error');
   assert.equal(h.requests.length, 0);
-  assert.match(h.sent[1], /\[DeepDock System\] Your JSON was malformed\. Error:/);
+  assert.match(h.sent[1], /\[DeepDock Harness System\] Your JSON was malformed\. Error:/);
   assert.match(h.sent[2], /chunk below 1.5 KB/);
   assert.match(h.sent[2], /Do not switch to handoff to repair framing errors/);
   assert.doesNotMatch(h.sent[2], /Please use dsh_handoff/);
@@ -606,13 +606,15 @@ test('recovery excerpts are bounded while the exact truncated response remains s
   assert.equal(h.requests.length, 0);
 });
 
-test('an incomplete capture after rendering grace requests a shorter call and records its provenance', async () => {
+test('an incomplete capture after rendering grace requests a complete block and records its provenance', async () => {
   const completion = { incompleteAfterGrace: true, capturedAt: '2026-10-24T10:00:00Z', messageKey: 'assistant-2', chars: 17, source: 'div.message', domStableMs: 2000 };
   const h = contentHarness(['⟦DSH⟧{"tool":"d', call('dsh_tree', { path: 'dragon-market', depth: 2 }), 'Located.'], { completion });
   await h.startRun({ task: 'Locate the local repository' });
   assert.equal(h.saved().stage, 'completed');
   assert.equal(h.requests.length, 1);
-  assert.match(h.sent[1], /Send a much shorter call and omit the optional summary field/);
+  assert.match(h.sent[1], /DeepSeek stopped rendering this reply before the tool block was complete/);
+  assert.match(h.sent[1], /continue with one complete tool block/);
+  assert.match(h.sent[1], /split it into hash-checked chunks and verify each chunk/);
   assert.match(h.nodes.get('dshpro-parser-error').textContent, /assistant-2; 17 characters from div.message/);
   assert.deepEqual(h.saved().conversationHistory.find((entry) => entry.role === 'assistant').completion, completion);
 });

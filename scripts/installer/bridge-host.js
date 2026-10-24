@@ -12,7 +12,7 @@ const logDir = path.join(configDir, 'logs');
 
 function loadConfig() {
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  if (!Number.isInteger(Number(config.port)) || !config.token) throw new Error('DeepDock setup is incomplete. Run the installer again.');
+  if (!Number.isInteger(Number(config.port)) || !config.token) throw new Error('DeepDock Harness setup is incomplete. Run the installer again.');
   return config;
 }
 
@@ -69,6 +69,6 @@ async function main() {
 main().catch((error) => {
   try {
     fs.mkdirSync(logDir, { recursive: true });
-    fs.appendFileSync(path.join(logDir, 'bridge.stderr.log'), `[DeepDock] ${error.message}\n`);
+    fs.appendFileSync(path.join(logDir, 'bridge.stderr.log'), `[DeepDock Harness] ${error.message}\n`);
   } catch {}
 });

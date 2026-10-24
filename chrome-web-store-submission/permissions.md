@@ -16,13 +16,13 @@ Periodically wakes the extension service worker to check the status of a local-a
 
 ### `http://127.0.0.1/*`
 
-Allows the extension service worker to send authenticated requests to the user's local DeepDock Bridge. The port is configurable, so access is scoped to the loopback host across ports. The extension's settings reject non-loopback bridge addresses. Requests carry the user-created bridge token in an Authorization header.
+Allows the extension service worker to send authenticated requests to the user's local DeepDock Harness Bridge. The port is configurable, so access is scoped to the loopback host across ports. The extension's settings reject non-loopback bridge addresses. Requests carry the user-created bridge token in an Authorization header.
 
 ## Content script site access
 
 ### `https://chat.deepseek.com/*`
 
-The content script adds the DeepDock panel to DeepSeek Chat, reads the active conversation and model response needed to manage the requested coding task, and enters follow-up prompts into the chat composer after showing a cancellable preview. It runs only on DeepSeek Chat, not across arbitrary websites.
+The content script adds the DeepDock Harness panel to DeepSeek Chat, reads the active conversation and model response needed to manage the requested coding task, and enters follow-up prompts into the chat composer after showing a cancellable preview. It runs only on DeepSeek Chat, not across arbitrary websites.
 
 ## Permissions not requested
 

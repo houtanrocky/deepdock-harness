@@ -1,4 +1,4 @@
-# DeepDock agent harness
+# DeepDock Harness
 
 Build with `npm run build`, load `.output/chrome-mv3/` as an unpacked extension,
 refresh DeepSeek, and click **Enable agent**. While

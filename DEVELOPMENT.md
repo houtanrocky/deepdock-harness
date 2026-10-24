@@ -1,4 +1,4 @@
-# Developing DeepDock
+# Developing DeepDock Harness
 
 Use Node.js 22.18 or newer and npm. The extension uses WXT 0.21 and Vite; the local bridge continues to use Node built-ins without runtime dependencies.
 
@@ -41,6 +41,8 @@ The harness and adapter are ordinary ES modules with explicit dependencies. Unit
 | `npm run build` | Build production files in `.output/chrome-mv3/` |
 | `npm run zip` | Create a distributable extension ZIP in `.output/` |
 
+The public project site is a buildless page in `docs/`, published by GitHub Pages from `main` and `/docs`. Keep its release links, privacy policy, and screenshots aligned with the release. `docs/assets/social-card.svg` is the source for the PNG social preview. GitHub Actions runs Windows regressions and Chromium integration checks on pushes and pull requests.
+
 Browser tests load the production build in a temporary browser profile. They use actual extension storage, messaging, alarms, and service workers, with local chat fixtures and an authenticated HTTP fixture bridge on an ephemeral loopback port. They never contact DeepSeek, use your bridge configuration, execute your local tools, or publish repositories. Traces and screenshots for failed tests are in `test-results/`; the panel test also captures desktop and mobile screenshots on success.
 
 ## Runtime boundaries
@@ -51,7 +53,7 @@ For browser changes, test semantic and observed DeepSeek layouts. For lifecycle 
 
 ## Loading an existing installation
 
-The product is now called DeepDock. Existing `dsh_` tool names, DSH protocol markers, `dshpro:` storage keys, `.dsh-pro/` workspace data, and the `dsh-pro` bridge service identifier remain compatible. Use `start-deepdock.cmd` and `stop-deepdock.cmd`; the older duplicate launcher names have been removed.
+The product is now called DeepDock Harness. Existing `dsh_` tool names, DSH protocol markers, `dshpro:` storage keys, `.dsh-pro/` workspace data, and the `dsh-pro` bridge service identifier remain compatible. Windows configuration and logs stay under `%APPDATA%\DeepDock` to preserve existing pairing tokens and settings. Use `start-deepdock.cmd` and `stop-deepdock.cmd`; the older duplicate launcher names have been removed.
 
 ## Bridge scripts
 

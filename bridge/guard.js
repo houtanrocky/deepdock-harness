@@ -1,5 +1,5 @@
 'use strict';
-// DeepDock - guard.js
+// DeepDock Harness - guard.js
 // 安全核心：workspace 白名单、路径规范化、.. 逃逸拒绝、符号链接逃逸拒绝、敏感文件名单。
 // 校验链：resolve -> 拒绝 .. / 绝对路径 -> realpath 前缀必须落在 allowedRoots -> 写操作逐段 lstat 拒符号链接 -> 敏感名单。
 

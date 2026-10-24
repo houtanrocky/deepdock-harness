@@ -33,11 +33,11 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
   const panel = document.createElement('section');
   panel.id = 'dshpro-panel';
   panel.className = 'dshpro-panel';
-  panel.setAttribute('aria-label', 'DeepDock agent harness');
+  panel.setAttribute('aria-label', 'DeepDock Harness');
   panel.innerHTML = `
     <header class="dshpro-head">
       <span class="dshpro-brand-icon">${icon('mark')}</span>
-      <div class="dshpro-brand"><span class="dshpro-title">DeepDock</span><span class="dshpro-eyebrow">YOUR LOCAL AGENT</span></div>
+      <div class="dshpro-brand"><span class="dshpro-title">DeepDock Harness</span><span class="dshpro-eyebrow">YOUR LOCAL AGENT</span></div>
       <span class="dshpro-dot" id="dshpro-dot" aria-hidden="true"></span>
       <button class="dshpro-icon-btn" id="dshpro-settings-toggle" aria-label="Settings" aria-expanded="false" aria-controls="dshpro-settings">${icon('settings')}</button>
       <button class="dshpro-icon-btn" id="dshpro-toggle" aria-label="Collapse panel" aria-expanded="true" aria-controls="dshpro-body">${icon('collapse')}</button>

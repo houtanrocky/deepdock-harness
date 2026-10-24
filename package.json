@@ -1,9 +1,20 @@
 {
-  "name": "deepdock",
-  "version": "0.2.0",
+  "name": "deepdock-harness",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "A browser agent harness for DeepSeek with a local execution bridge",
+  "description": "Give DeepSeek Chat a local workspace: file, shell, Git, and GitHub tools with permissions and resumable tasks.",
+  "license": "MIT",
+  "author": "houtanrocky",
+  "homepage": "https://houtanrocky.github.io/deepdock-harness/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/houtanrocky/deepdock-harness.git"
+  },
+  "bugs": {
+    "url": "https://github.com/houtanrocky/deepdock-harness/issues"
+  },
+  "keywords": ["deepseek", "agent-harness", "browser-extension", "coding-agent", "local-tools", "chrome", "edge", "github"],
   "engines": {
     "node": ">=22.18.0"
   },

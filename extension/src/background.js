@@ -3,7 +3,7 @@ import { normalizeBridgeUrl } from './contracts.ts';
 /** Register the MV3 service worker synchronously; state is restored from storage. */
 export function startBackground(browser, dependencies = {}) {
   const { fetch = globalThis.fetch, setTimeout = globalThis.setTimeout, clearTimeout = globalThis.clearTimeout } = dependencies;
-  // DeepDock - background.js (MV3 Service Worker)
+  // DeepDock Harness - background.js (MV3 Service Worker)
   // 职责：
   //  1. 代理 content script -> 桥接服务的所有 HTTP 请求（统一附加 Bearer token，规避页面 CORS）
   //  2. handoff runId 轮询兜底：browser.alarms 定期唤醒（content 页面在前台时自己也会更快轮询）

@@ -1,20 +1,20 @@
-#define AppName "DeepDock Bridge"
+#define AppName "DeepDock Harness Bridge"
 #define AppVersion "0.1.0"
-#define AppPublisher "DeepDock"
+#define AppPublisher "DeepDock Harness"
 
 [Setup]
 AppId={{A2877C72-12E5-4A5D-BBE2-AF4FC7CBB6AA}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={localappdata}\Programs\DeepDock Bridge
-DefaultGroupName=DeepDock Bridge
+DefaultDirName={localappdata}\Programs\DeepDock Harness Bridge
+DefaultGroupName=DeepDock Harness Bridge
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\dist\installer
-OutputBaseFilename=DeepDock-Bridge-Setup-{#AppVersion}-x64
+OutputBaseFilename=DeepDock-Harness-Bridge-Setup-{#AppVersion}-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -26,17 +26,17 @@ Name: "autostart"; Description: "Start the bridge automatically when I sign in";
 
 [Files]
 Source: "build\node.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "build\bridge\*.js"; DestDir: "{app}\bridge"; Flags: ignoreversion
+Source: "build\bridge\*.js"; DestDir: "{app}\bridge"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "build\bridge-host.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "build\launch.vbs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "build\stop.vbs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "build\setup.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\DeepDock Bridge\Start bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""
-Name: "{autoprograms}\DeepDock Bridge\Stop bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\stop.vbs"""
-Name: "{autoprograms}\DeepDock Bridge\Uninstall"; Filename: "{uninstallexe}"
-Name: "{userstartup}\DeepDock Bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Tasks: autostart
+Name: "{autoprograms}\DeepDock Harness Bridge\Start bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""
+Name: "{autoprograms}\DeepDock Harness Bridge\Stop bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\stop.vbs"""
+Name: "{autoprograms}\DeepDock Harness Bridge\Uninstall"; Filename: "{uninstallexe}"
+Name: "{userstartup}\DeepDock Harness Bridge"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Tasks: autostart
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\setup.ps1"" -Workspace ""{code:GetWorkspace}"" -InstallDir ""{app}"""; Flags: runhidden waituntilterminated
@@ -55,7 +55,7 @@ begin
   DocumentsPath := ExpandConstant('{userdocs}');
   WorkspacePage := CreateInputDirPage(wpSelectDir,
     'Choose your project folder',
-    'DeepDock can access files only inside the folder you choose.',
+    'DeepDock Harness can access files only inside the folder you choose.',
     'Select the project folder you want to use with the bridge, then click Next.',
     False, '');
   WorkspacePage.Add('Project folder:');

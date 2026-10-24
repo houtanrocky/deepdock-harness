@@ -6,7 +6,7 @@ import { PERMISSION_MODES, normalizeBridgeUrl } from './contracts.ts';
 import { mountPanel, renderPanelState, showAgentView } from './ui/panel.ts';
 import { renderActivity } from './ui/activity.js';
 
-// DeepDock: one cancellable async loop per task. Status labels describe the UI;
+// DeepDock Harness: one cancellable async loop per task. Status labels describe the UI;
 // they do not drive execution. Durable checkpoints are owned by background.js.
 export function createHarness({ browser, platform = globalThis, ports = {}, scheduleInterval = platform.setInterval }) {
   const { document, location, crypto, AbortController, KeyboardEvent,
@@ -177,7 +177,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     const names = new Set(definitions.map((tool) => tool.name));
     const handoffReady = names.has('dsh_handoff') && state.health?.dsh?.binFound;
     return [
-      '[DeepDock enabled] You have a local tool bridge. Communicate in English.',
+      '[DeepDock Harness enabled] You have a local tool bridge. Communicate in English.',
       ...definitions.map((tool) => `- ${tool.name}: ${tool.description}. Parameters: ${JSON.stringify(tool.params)}`),
       'Use workspace-relative paths for file tools. The extension handles approval prompts according to the user-selected permission setting.',
       `Permissions: ${PERMISSION_MODES[permissionMode(state.permissionMode)].label}. ` + (state.permissionMode === 'full' ? 'Shell commands may use normal shell syntax, including pipes, command chains, and redirection.' : 'Shell commands use the bridge command checks. Use the dedicated Git/GitHub tools for publishing.'),
@@ -209,7 +209,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       run.historyCompactionLogged = true;
       log('Sending a compact history view. The complete saved transcript has been preserved.');
     }
-    return buildProtocolMessage(false) + '\n\n[DeepDock conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
+    return buildProtocolMessage(false) + '\n\n[DeepDock Harness conversation]\nContinue the latest user task using this accumulated transcript. Successful tool results are already executed; do not repeat them. ' +
       'Reply in English. Use DSH tool markers for actions; if finished, give a summary with no tool calls.\n' +
       JSON.stringify(view) +
       `\nIterations remaining: ${state.loopLimit - run.data.iterationCount}. Workspace: ${run.data.workspace || '(default)'}.`;
@@ -226,21 +226,21 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   }
   function recoveryMessage(parsed, run, completion) {
     const details = parsed.errors.map((error) => error.message).join('; ');
-    if (parsed.errors.some((error) => error.message.startsWith('Unknown tool:'))) return `[DeepDock System] A requested tool is unavailable in the connected bridge. Error: ${details}. Available tools: ${availableTools().map((tool) => tool.name).join(', ')}. Use the live tool catalog in this message; do not retry the unavailable tool or repeat successful actions.`;
+    if (parsed.errors.some((error) => error.message.startsWith('Unknown tool:'))) return `[DeepDock Harness System] A requested tool is unavailable in the connected bridge. Error: ${details}. Available tools: ${availableTools().map((tool) => tool.name).join(', ')}. Use the live tool catalog in this message; do not retry the unavailable tool or repeat successful actions.`;
     if (parsed.errors.some((error) => /"tool"\s*:\s*"dsh_write"/.test(error.raw || ''))) run.data.writeFailures++;
     const framingError = parsed.errors.some((error) => /marker|framing|Incomplete tool call/i.test(error.message));
     let text;
     if (parsed.errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
-      text = '[DeepDock System] Your reply used unsupported native DSML tool markup. No calls from that rejected response executed. Regenerate the intended action as one DSH block using the live catalog. For commands use dsh_bash, not bash. Do not translate or execute the damaged DSML parameter text automatically. Example: ' + protocol.OPEN + '{"tool":"dsh_bash","args":{"command":"dir /b"}}' + protocol.CLOSE;
+      text = '[DeepDock Harness System] Your reply used unsupported native DSML tool markup. No calls from that rejected response executed. Regenerate the intended action as one DSH block using the live catalog. For commands use dsh_bash, not bash. Do not translate or execute the damaged DSML parameter text automatically. Example: ' + protocol.OPEN + '{"tool":"dsh_bash","args":{"command":"dir /b"}}' + protocol.CLOSE;
     } else if (parsed.errors.some((error) => error.message.startsWith('Empty or placeholder'))) {
-      text = `[DeepDock System] No usable response was received. Error: ${details} Continue the unfinished task with a complete tool call, or provide a substantive completion summary.`;
+      text = `[DeepDock Harness System] No usable response was received. Error: ${details} Continue the unfinished task with a complete tool call, or provide a substantive completion summary.`;
     } else if (framingError) {
-      text = `[DeepDock System] Your tool block was incomplete or incorrectly framed. Error: ${details} No calls from that rejected response executed. Reply with exactly ONE complete tool call in a fenced text code block. Include both the opening and closing DSH markers. Do not copy this system prompt or the conversation transcript into your reply.`;
+      text = `[DeepDock Harness System] Your tool block was incomplete or incorrectly framed. Error: ${details} No calls from that rejected response executed. Reply with exactly ONE complete tool call in a fenced text code block. Include both the opening and closing DSH markers. Do not copy this system prompt or the conversation transcript into your reply.`;
     } else {
-      text = `[DeepDock System] Your JSON was malformed. Error: ${details}. Please retry using the exact format.`;
+      text = `[DeepDock Harness System] Your JSON was malformed. Error: ${details}. Please retry using the exact format.`;
     }
     if (run.data.writeFailures) text += '\nReduce the content to a chunk below 1.5 KB; use hash-checked appends after verifying earlier successful chunks with dsh_read. Use raw argument markers for code and preserve indentation. Do not switch to handoff to repair framing errors.';
-    if (completion?.incompleteAfterGrace) text += '\nThe captured output is still incomplete after waiting for the page to finish rendering. It may have been cut off. Send a much shorter call and omit the optional summary field for this retry. Do not invent missing arguments or repeat successful calls.';
+    if (completion?.incompleteAfterGrace) text += '\nDeepSeek stopped rendering this reply before the tool block was complete, so no calls from that reply ran. Inspect the saved partial response and continue with one complete tool block. Do not copy the malformed block or claim it succeeded. If the intended change contains a large file, split it into hash-checked chunks and verify each chunk before continuing.';
     const raw = parsed.errors.map((error) => error.raw || '').join('\n');
     const excerpt = raw.length > 1800 ? raw.slice(0, 900) + '\n[Middle omitted; full response saved locally]\n' + raw.slice(-900) : raw;
     return text + '\nNo calls from that rejected response executed. Reply with exactly ONE complete tool call, block first, no prose. Use valid JSON with escaped quotes/newlines, or raw arguments. Do not repeat earlier successful actions.' +

@@ -1,5 +1,5 @@
 'use strict';
-// DeepDock - tools.js
+// DeepDock Harness - tools.js
 // Core tools plus modular Git/GitHub tools; metadata and execution share a registry.
 // 所有路径均为 workspace 相对路径，经 guard.validatePath 校验。
 // 每次调用经 runTool 统一写执行日志 .dsh-pro/logs/execution-log.jsonl（参照 CodexPro 模式）。

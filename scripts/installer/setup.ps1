@@ -38,7 +38,7 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 }
 
 $startupPath = [Environment]::GetFolderPath('Startup')
-$shortcutPath = Join-Path $startupPath 'DeepDock Bridge.lnk'
+$shortcutPath = Join-Path $startupPath 'DeepDock Harness Bridge.lnk'
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
@@ -52,8 +52,8 @@ $launch = Join-Path $env:WINDIR 'System32\wscript.exe'
 Start-Process -FilePath $launch -ArgumentList ('"' + (Join-Path $InstallDir 'launch.vbs') + '"') -WindowStyle Hidden
 Add-Type -AssemblyName System.Windows.Forms
 [void][Windows.Forms.MessageBox]::Show(
-    "DeepDock Bridge is installed and will start when you sign in.`r`n`r`nYour pairing token has been copied to the clipboard. Paste it into DeepDock extension settings.`r`n`r`nProject folder: $($config.allowedRoots[0])`r`nBridge address: http://127.0.0.1:$($config.port)",
-    'DeepDock Bridge is ready',
+    "DeepDock Harness Bridge is installed and will start when you sign in.`r`n`r`nYour pairing token has been copied to the clipboard. Paste it into DeepDock Harness extension settings.`r`n`r`nProject folder: $($config.allowedRoots[0])`r`nBridge address: http://127.0.0.1:$($config.port)",
+    'DeepDock Harness Bridge is ready',
     [Windows.Forms.MessageBoxButtons]::OK,
     [Windows.Forms.MessageBoxIcon]::Information
 )

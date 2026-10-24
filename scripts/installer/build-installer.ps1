@@ -8,6 +8,11 @@ $installerDir = $PSScriptRoot
 $repoRoot = Split-Path -Parent (Split-Path -Parent $installerDir)
 $buildDir = Join-Path $installerDir 'build'
 $bridgeBuild = Join-Path $buildDir 'bridge'
+$resolvedBuildDir = [IO.Path]::GetFullPath($buildDir)
+$resolvedBridgeBuild = [IO.Path]::GetFullPath($bridgeBuild)
+if (-not $resolvedBridgeBuild.StartsWith($resolvedBuildDir + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Bridge staging directory must stay inside $resolvedBuildDir"
+}
 $nodeZip = Join-Path $buildDir "node-v$NodeVersion-win-x64.zip"
 $nodeUrl = "https://nodejs.org/dist/v$NodeVersion/node-v$NodeVersion-win-x64.zip"
 
@@ -33,6 +38,7 @@ if (Test-Path -LiteralPath $bridgeBuild) { Remove-Item -LiteralPath $bridgeBuild
 New-Item -ItemType Directory -Path $bridgeBuild -Force | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $repoRoot 'bridge') -Filter '*.js' -File |
     Copy-Item -Destination $bridgeBuild -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'bridge\tool-modules') -Destination $bridgeBuild -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $installerDir 'bridge-host.js') -Destination $buildDir -Force
 Copy-Item -LiteralPath (Join-Path $installerDir 'launch.vbs') -Destination $buildDir -Force
 Copy-Item -LiteralPath (Join-Path $installerDir 'stop.vbs') -Destination $buildDir -Force

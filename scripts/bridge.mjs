@@ -37,7 +37,7 @@ async function request(config, endpoint, method = 'GET') {
     throw new Error('The running bridge uses a different token from bridge/config.json. An older pair.ps1 could change the file without restarting the bridge. Stop tasks and close that old bridge console, then run start-deepdock.cmd. Pairing now reuses the saved token by default.');
   }
   let data;
-  try { data = await response.json(); } catch { throw new Error(`Port ${config.port} is not responding as a DeepDock bridge.`); }
+  try { data = await response.json(); } catch { throw new Error(`Port ${config.port} is not responding as a DeepDock Harness bridge.`); }
   if (!response.ok || !data.ok) throw new Error(data.error?.message || `Bridge request failed (HTTP ${response.status}).`);
   return data;
 }
@@ -74,11 +74,11 @@ async function start(root, config, log) {
   const expectedBuild = require(path.join(bridgeDirectory, 'build.js')).bridgeBuildId(bridgeDirectory);
   const status = await health(config);
   if (status?.buildId === expectedBuild) {
-    log(`[DeepDock] bridge already ready: ${status.toolCount} tools on port ${config.port}.`);
+    log(`[DeepDock Harness] bridge already ready: ${status.toolCount} tools on port ${config.port}.`);
     return status;
   }
   if (status) {
-    log('[DeepDock] refreshing the idle bridge...');
+    log('[DeepDock Harness] refreshing the idle bridge...');
     await stop(config, status);
   }
   const stdout = fs.openSync(path.join(bridgeDirectory, 'bridge.stdout.log'), 'a');
@@ -98,7 +98,7 @@ async function start(root, config, log) {
     if (spawnError || child.exitCode !== null) throw new Error('The bridge failed to start. See bridge/bridge.stderr.log.');
     const loaded = await health(config);
     if (loaded?.buildId === expectedBuild) {
-      log(`[DeepDock] bridge ready: ${loaded.toolCount} tools on port ${config.port}.`);
+      log(`[DeepDock Harness] bridge ready: ${loaded.toolCount} tools on port ${config.port}.`);
       return loaded;
     }
   }
@@ -111,7 +111,7 @@ export async function manageBridge(action, { root = projectRoot, rotateToken = f
     const reusable = typeof config?.token === 'string' && config.token.length >= 32;
     if (reusable && !rotateToken) {
       await start(root, config, log);
-      log('[DeepDock] existing pairing reused; the token has not changed.');
+      log('[DeepDock Harness] existing pairing reused; the token has not changed.');
       return;
     }
     // Authenticate and stop the old idle process BEFORE changing credentials.
@@ -124,14 +124,14 @@ export async function manageBridge(action, { root = projectRoot, rotateToken = f
     config.token = crypto.randomBytes(32).toString('hex');
     fs.writeFileSync(path.join(root, 'bridge', 'config.json'), JSON.stringify(config, null, 2) + '\n', 'utf8');
     await start(root, config, log);
-    log('[DeepDock] new pairing saved and verified. Update the extension with the saved token.');
+    log('[DeepDock Harness] new pairing saved and verified. Update the extension with the saved token.');
     return;
   }
   if (!config) throw new Error('bridge/config.json is missing. Run scripts/pair.ps1 first.');
   if (action === 'start') return start(root, config, log);
   if (action === 'stop') {
     const stopped = await stop(config);
-    log(stopped ? '[DeepDock] bridge stopped.' : '[DeepDock] bridge is already stopped.');
+    log(stopped ? '[DeepDock Harness] bridge stopped.' : '[DeepDock Harness] bridge is already stopped.');
     return;
   }
   throw new Error('Usage: node scripts/bridge.mjs start|stop|pair [--rotate-token]');
@@ -139,7 +139,7 @@ export async function manageBridge(action, { root = projectRoot, rotateToken = f
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   manageBridge(process.argv[2], { rotateToken: process.argv.includes('--rotate-token') }).catch((error) => {
-    console.error('[DeepDock] ' + error.message);
+    console.error('[DeepDock Harness] ' + error.message);
     process.exitCode = 1;
   });
 }

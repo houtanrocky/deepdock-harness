@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a reproducible problem with the extension, bridge, or setup.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Remove pairing tokens, API keys, private chat text, and project secrets. For security vulnerabilities, use private vulnerability reporting instead."
+  - type: input
+    id: versions
+    attributes:
+      label: Versions and environment
+      description: Extension version, bridge version, browser version, Windows version, and Node.js version if using a source checkout.
+    validations:
+      required: true
+  - type: dropdown
+    id: permission
+    attributes:
+      label: Permission mode
+      options:
+        - Ask for important commands
+        - Ask every time
+        - Full access
+        - Setup did not reach this step
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Give a small example, the expected behavior, and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics or screenshots
+      description: Include the error code and relevant output. Check for secrets before posting.

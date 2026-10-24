@@ -1,5 +1,5 @@
 'use strict';
-// DeepDock - handoff.js
+// DeepDock Harness - handoff.js
 // 计划落盘 .dsh-pro/ -> spawn `dsh --profile headless "…"` -> 输出采集 -> runs/<runId>.json 持久真源。
 // 串行队列：同时最多 1 个 dsh handoff。扩展通过 GET /handoff/:runId 轮询。
 
@@ -88,7 +88,7 @@ function stateDir(workspace) {
 
 function writeStatus(workspace, run) {
   const lines = [
-    '# DeepDock agent-status',
+    '# DeepDock Harness agent-status',
     '',
     `- status: ${run.status}`,
     `- runId: ${run.runId}`,

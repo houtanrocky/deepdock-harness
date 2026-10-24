@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a useful workflow or improvement.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the concrete task and what makes it difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested behavior
+      description: Explain the outcome you want and any alternatives you considered.
+    validations:
+      required: true

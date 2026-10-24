@@ -5,7 +5,8 @@ export default defineConfig({
   publicDir: 'extension/public',
   imports: false,
   manifest: {
-    name: 'DeepDock',
+    name: 'DeepDock Harness',
+    homepage_url: 'https://houtanrocky.github.io/deepdock-harness/',
     description: 'An agent harness for DeepSeek: local tools, durable tasks, permissions, and handoff.',
     permissions: ['storage', 'alarms'],
     host_permissions: ['http://127.0.0.1/*'],

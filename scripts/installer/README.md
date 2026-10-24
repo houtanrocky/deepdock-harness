@@ -1,6 +1,6 @@
 # Windows bridge installer
 
-The installer creates a per-user DeepDock Bridge installation. It bundles Node.js, asks which existing project folder DeepDock may access, creates a local pairing token, copies that token to the clipboard, and starts the bridge in the background. The bridge starts again when the user signs in if the startup option remains enabled. The browser extension is packaged separately.
+The installer creates a per-user DeepDock Harness Bridge installation. It bundles Node.js, asks which existing project folder DeepDock Harness may access, creates a local pairing token, copies that token to the clipboard, and starts the bridge in the background. The bridge starts again when the user signs in if the startup option remains enabled. The browser extension is packaged separately.
 
 ## Build
 
@@ -10,11 +10,11 @@ On Windows, install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run 
 powershell -ExecutionPolicy Bypass -File scripts/installer/build-installer.ps1
 ```
 
-The script downloads the pinned Node.js 22.18.0 Windows x64 archive from nodejs.org, checks its SHA-256 against the official checksum file, stages the bridge, and compiles `dist/installer/DeepDock-Bridge-Setup-0.1.0-x64.exe`.
+The script downloads the pinned Node.js 22.18.0 Windows x64 archive from nodejs.org, checks its SHA-256 against the official checksum file, stages the bridge, and compiles `dist/installer/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe`.
 
 ## Installed files and settings
 
-- Program files: `%LOCALAPPDATA%\Programs\DeepDock Bridge`
+- Program files: `%LOCALAPPDATA%\Programs\DeepDock Harness Bridge`
 - Configuration and pairing token: `%APPDATA%\DeepDock\config.json`
 - Audit and bridge logs: `%APPDATA%\DeepDock\audit.jsonl` and `%APPDATA%\DeepDock\logs\`
 - Start Menu shortcuts: **Start bridge** and **Stop bridge**

@@ -1,30 +1,74 @@
-# DeepDock
+<p align="center"><img src="docs/assets/icon128.png" width="80" alt="DeepDock Harness duck logo"></p>
 
-A browser agent harness for the DeepSeek web UI. Give it a task in chat, and it can use local file, search, shell, Git, and GitHub tools through an authenticated loopback bridge. Longer tasks can be handed to DeepSeek Harness (`dsh --profile headless`).
+<h1 align="center">DeepDock Harness</h1>
+<p align="center"><strong>Give DeepSeek Chat a local workspace.</strong><br>Local coding tools. Visible progress. Your permission.</p>
 
-The extension now builds with **WXT** and includes a redesigned panel with task status, an iteration budget, workspace selection, saved permission modes, and connection settings. It runs one cancellable tool loop per conversation and saves checkpoints for explicit recovery.
+<p align="center">
+  <a href="https://github.com/houtanrocky/deepdock-harness/actions/workflows/ci.yml"><img src="https://github.com/houtanrocky/deepdock-harness/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/houtanrocky/deepdock-harness/releases/latest"><img src="https://img.shields.io/github/v/release/houtanrocky/deepdock-harness?color=a8f0c0&label=release" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a8f0c0" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/browser-Chrome%20%7C%20Edge-a8f0c0" alt="Chrome and Edge">
+</p>
 
-```text
-DeepSeek chat → extension harness → local bridge → workspace tools
-                      ↓                   └── DeepSeek Harness handoff
-             conversation checkpoints
+<p align="center"><a href="https://houtanrocky.github.io/deepdock-harness/"><strong>Project website</strong></a> · <a href="https://github.com/houtanrocky/deepdock-harness/releases/latest"><strong>Download</strong></a> · <a href="#quick-start">Quick start</a> · <a href="DEVELOPMENT.md">Developer guide</a> · <a href="https://github.com/houtanrocky/deepdock-harness/issues">Issues &amp; ideas</a></p>
+
+![DeepDock Harness: DeepSeek, meet your workspace.](docs/assets/social-preview.png)
+
+DeepDock Harness is an open-source browser agent harness for **DeepSeek Chat**. Describe a task in your normal conversation, and let the extension use local file, search, shell, Git, and GitHub tools through an authenticated loopback bridge. You choose the project folder and approval mode. The panel shows what ran, what changed, and what needs your attention.
+
+| Work from the chat you know | Stay involved in the work |
+| --- | --- |
+| **17 workspace tools** for files, commands, Git, GitHub, and optional agent handoff | **Three permission modes**, from approval on every tool to full access |
+| **File diffs and tool results** alongside the conversation | **Stop and explicit Resume** with locally saved task checkpoints |
+| **GitHub publishing** through your existing Git and GitHub CLI authentication | **Uncertain requests pause** for review instead of automatically replaying changes |
+
+```mermaid
+flowchart LR
+  Chat[DeepSeek Chat] <--> Harness[Browser harness]
+  Harness <--> Bridge[Authenticated local bridge]
+  Bridge <--> Workspace[Files · shell · Git · GitHub]
+  Harness --> Checkpoints[Local conversation checkpoints]
+  Bridge -. optional .-> Agent[Separate local agent]
 ```
 
-## Install and run
+Tools execute on your computer. Relevant prompts, code, and tool results can be sent through your DeepSeek conversation. DeepDock Harness operates no collection server and includes no analytics. See the [privacy policy](https://houtanrocky.github.io/deepdock-harness/privacy.html).
 
-Requires Node.js **22.18+**, npm, and Chrome or Edge **120+**. Install and authenticate DeepSeek Harness separately if you want local agent handoff. Git tools require Git; GitHub creation and publishing use your existing Git/SSH credentials and GitHub CLI authentication (`gh auth login`).
+## Quick start
+
+### Windows downloads
+
+Download both components from the [latest release](https://github.com/houtanrocky/deepdock-harness/releases/latest):
+
+1. **[Bridge installer](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe)** — Windows x64; bundles Node.js. Choose your project folder during setup. The installer copies your pairing token to the clipboard. This community installer is unsigned.
+2. **[Browser extension ZIP](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.1/deepdock-harness-0.2.1-chrome.zip)** — extract it, open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the extracted folder containing `manifest.json`.
+3. Open [DeepSeek Chat](https://chat.deepseek.com). In the **DeepDock Harness** panel, open **Settings**, paste the pairing token, and save.
+4. Click **Test connection**, then **Enable agent**. Once the protocol handshake finishes, send your task through the normal composer.
+
+Try: “Read this project’s README and explain its structure.” Then move on to a focused change with a check you can verify.
+
+Requires Chrome or Edge **120+** and a DeepSeek account. The extension is distributed as an unpacked extension; a Chrome Web Store listing is not required. Git tools require Git; GitHub tools use your existing Git/SSH credentials and GitHub CLI authentication (`gh auth login`). Local agent handoff is optional and needs a separately installed and authenticated DeepSeek Harness runtime.
+
+### Build from source
+
+Use Windows with Node.js **22.18+** and npm:
 
 ```powershell
+git clone https://github.com/houtanrocky/deepdock-harness.git
+cd deepdock-harness
 npm ci
 npm run build
+powershell -ExecutionPolicy Bypass -File scripts/pair.ps1
 ```
 
-1. Pair and start the bridge with `powershell -ExecutionPolicy Bypass -File scripts/pair.ps1`. This reuses an existing local token or creates one on first use, verifies the bridge, and copies the token to the clipboard. Configure workspace roots and the optional `dshBin` in the ignored `bridge/config.json`.
-2. Open `chrome://extensions` or `edge://extensions`, turn on developer mode, and load **`.output/chrome-mv3/`** as an unpacked extension.
-3. Open `https://chat.deepseek.com`. In the DeepDock panel, open **Settings**, paste the bridge token, and save. The bridge address defaults to `http://127.0.0.1:8765`.
-4. Click **Test connection**, then **Enable agent**. Once DeepSeek confirms the protocol, send your task through its normal composer.
+Load **`.output/chrome-mv3/`** as an unpacked extension, then pair through Settings as described above. Pairing reuses an existing local token or creates one on first use, verifies the bridge, and copies the token to the clipboard. Configure workspace roots and the optional `dshBin` in the ignored `bridge/config.json`.
 
-For a Windows installer that bundles Node.js and starts the bridge in the background, see [the installer build guide](scripts/installer/README.md). The installer asks you to choose a project folder and copies the pairing token to the clipboard. The browser extension is distributed separately.
+For rebuilding the Windows installer, see [the installer build guide](scripts/installer/README.md).
+
+<details>
+<summary><strong>See the extension panel</strong></summary>
+<p align="center"><img src="docs/assets/workspace-panel.png" width="420" alt="DeepDock Harness panel with a completed task, file changes, tool results, and permission controls."></p>
+<p>Captured from the real extension using a local browser fixture and example project data.</p>
+</details>
 
 For daily use, `scripts/start-deepdock.cmd` starts or refreshes an idle bridge and `scripts/stop-deepdock.cmd` stops it. The extension must remain open in the conversation while it interacts with DeepSeek. Use **Stop** to cancel a task and **Disable agent** to return to ordinary chat. A page reload offers **Resume unfinished task** and never silently reruns tools.
 
@@ -81,3 +125,9 @@ Direct file tools validate workspace boundaries and block path escapes and crede
 DeepSeek has no public DOM contract. If its layout changes, use **Diagnostics** and optionally override selectors in **Settings → Advanced selectors**, or update `extension/src/adapters/`. Browser integration tests use local chat fixtures and a fixture bridge; they do not certify the current live DeepSeek site or send messages to your account.
 
 Automatic chat interaction can trigger service limits. Outgoing sends retain the cancellable two-second preview, throttling, and daily limit. The full transcript stays local; only a bounded view is sent with each continuation.
+
+## Contribute
+
+Bug reports, improvements to DeepSeek selectors, tool modules, and documentation are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), use the [issue templates](https://github.com/houtanrocky/deepdock-harness/issues/new/choose), or open a pull request with the checks you ran. Report sensitive security issues using the process in [SECURITY.md](SECURITY.md).
+
+Independent project; not affiliated with or endorsed by DeepSeek. Released under the [MIT license](LICENSE).

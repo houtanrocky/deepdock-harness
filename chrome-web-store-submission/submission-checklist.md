@@ -2,8 +2,8 @@
 
 ## Package and listing
 
-- [ ] Upload `extension/deepdock-0.2.0-chrome.zip` as the extension package.
-- [ ] Name: DeepDock.
+- [ ] Upload `extension/deepdock-harness-0.2.1-chrome.zip` as the extension package.
+- [ ] Name: DeepDock Harness.
 - [ ] Category: Productivity; language: English.
 - [ ] Paste the short and detailed descriptions from `store-listing.md`.
 - [ ] Set a public project website and support URL.
