@@ -43,9 +43,27 @@ one-off actions an agent can perform through the shell.
 ## Suggested delivery order
 
 Additional implemented workflow improvements:
-configurable tool-result pacing (two seconds by default, cancellable with Stop
+Windows bridge lifecycle and pairing: the installer now provides a native desktop
+app with Bridge and Help tabs, tray controls, explicit Start/Stop, token copying,
+and confirmed recovery for frozen legacy processes, including source-launched
+bridges on the configured port with a different runtime or token. Installation no longer starts
+the bridge or registers startup; upgrades remove the old startup shortcut. The
+source stop script also finds installed configurations. The harness includes
+visible pairing guidance, a direct Settings > Bridge token action, and a Help tab.
+
+Configurable tool-result pacing (two seconds by default, cancellable with Stop
 and preserved on Resume), and a default iteration budget of 30. Saved user
 iteration limits remain unchanged.
+
+Tool text integrity: the harness requests fenced literal tool blocks, detects
+rendered Markdown/math within tool calls, and rejects the entire affected response
+before execution. Recovery requests literal raw arguments with a fence longer
+than any backtick run in the payload. File paths containing control characters
+receive an explicit JSON-escaping diagnostic. Successful chunked writes can use
+the returned hash for the next append, followed by a final readback. `DSH_TOOL`
+wrapper variants receive ordinary tool validation and recovery, and saved tasks
+falsely completed on tool markup offer Resume without replaying the proposal. See
+[the October 25 log analysis](LOG-ANALYSIS-2026-10-25.md).
 
 After project instructions, prioritize the patch tool and managed terminal
 sessions. Follow those with structured test results and completion checks, so

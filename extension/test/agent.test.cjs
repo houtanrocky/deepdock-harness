@@ -61,6 +61,7 @@ function contentHarness(responses = [], options = {}) {
     setTimeout: options.platformSetTimeout || setTimeout, clearTimeout: options.platformClearTimeout || clearTimeout, setInterval, clearInterval, console,
   } });
   const sent = [];
+  api.state.token = 'fixture-token';
   api.state.tools = { tools: TOOL_DEFS };
   api.state.health = { allowedRoots: ['C:/workspace'], dsh: { binFound: true } };
   api.state.enabled = true;
@@ -71,7 +72,7 @@ function contentHarness(responses = [], options = {}) {
     sent.push(text);
     const raw = responses.shift();
     if (raw === undefined) throw new Error('No fixture response available');
-    return { promise: Promise.resolve({ raw, ...(options.completion ? { completion: options.completion } : {}) }), cancel() {} };
+    return { promise: Promise.resolve({ raw, ...(options.completion ? { completion: options.completion } : {}), ...(options.renderedRanges ? { renderedRanges: options.renderedRanges(raw) } : {}) }), cancel() {} };
   };
   return { ...api, ...background, nodes, sent, setTransport: (fn) => { ports.send = fn; }, setBridge: (fn) => { ports.bridge = fn; }, saved: () => background.local['dshpro:conversation:' + url] };
 }
@@ -345,6 +346,40 @@ test('raw arguments preserve complex code without escaping and reject duplicate 
   assert.equal(parsed.calls[0].args.content, code);
   assert.equal(parsed.errors.length, 0);
   assert.equal(protocol.parse(block.replace('"path":"a.html"', '"path":"a.html","content":"duplicate"')).errors.length, 1);
+});
+
+test('rendered tool arguments reject the whole response while formatted narration remains allowed', () => {
+  const first = call('dsh_read', { path: 'safe.txt' });
+  const second = call('dsh_write', { path: 'README.md', content: 'Lost punctuation' });
+  const raw = first + '\n' + second;
+  const start = raw.indexOf('Lost punctuation');
+  assert.equal(protocol.parse(raw, { renderedRanges: [{ start, end: start + 16 }] }).errors[0].code, 'E_RENDERED_TOOL_TEXT');
+  const prose = 'Checking files\n';
+  assert.equal(protocol.parse(prose + first, { renderedRanges: [{ start: 0, end: prose.length - 1 }] }).errors.length, 0);
+  const prefix = '<ds_safety>metadata</ds_safety>\n';
+  assert.equal(protocol.parse(prefix + raw, { renderedRanges: [{ start: prefix.length + start, end: prefix.length + start + 16 }] }).errors[0].code, 'E_RENDERED_TOOL_TEXT');
+});
+
+test('rendering recovery never executes damaged calls and requests literal fenced arguments', async () => {
+  const damaged = call('dsh_write', { path: 'README.md', content: 'Title' });
+  const exact = '# Title\n- item / path\n**bold**\n$lines = @()\n';
+  const h = contentHarness([call('dsh_read', { path: 'safe.txt' }) + damaged, call('dsh_write', { path: 'README.md', content: exact }), 'Written.'], {
+    renderedRanges(raw) { const start = raw.indexOf('Title'); return raw.includes('safe.txt') ? [{ start, end: start + 5 }] : []; },
+  });
+  await h.startRun({ task: 'Write Markdown' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.deepEqual(h.requests.map((request) => request.body.tool), ['dsh_write']);
+  assert.equal(h.requests[0].body.args.content, exact);
+  assert.match(h.sent[1], /Markdown rendering changed your tool text/);
+  assert.match(h.sent[1], /No calls from that rejected response executed/);
+});
+
+test('raw Windows commands preserve path backslashes, PowerShell variables, and Markdown punctuation', () => {
+  const command = String.raw`powershell -NoProfile -File .dsh-pro\tmp\gen.ps1; $h = '# / - *'; $lines = @()`;
+  const raw = '````text\n' + protocol.OPEN + '\n{"tool":"dsh_bash","args":{}}\n⟦DSH:ARG:command⟧\n' + command + '\n⟦/DSH:ARG:command⟧\n' + protocol.CLOSE + '\n````';
+  const parsed = protocol.parse(raw);
+  assert.deepEqual(parsed.errors, []);
+  assert.equal(parsed.calls[0].args.command, command);
 });
 
 test('repair handles the reported HTML with mixed escaped and unescaped attribute quotes', () => {
@@ -809,6 +844,25 @@ test('ds_tool wrappers execute validated calls and never count as completion pro
   assert.equal(h.requests[0].body.args.path, 'maktab-sharif-landing/index.html');
   assert.equal(h.saved().iterationCount, 2);
   assert.equal(h.saved().stage, 'completed');
+});
+
+test('DSH_TOOL variants validate calls and the reported missing JSON brace recovers within the remaining budget', async () => {
+  for (const tag of ['DSH_TOOL', 'dsh_tool', 'DSH-TOOL', 'dsh-tool']) {
+    const parsed = protocol.parse('<' + tag + '>{"tool":"dsh_read","args":{"path":"README.md"}}</' + tag + '>');
+    assert.deepEqual(parsed.errors, []);
+    assert.equal(parsed.calls[0].args.path, 'README.md');
+    for (const raw of ['<' + tag + '>', '</' + tag + '>', '<' + tag, '<' + tag + '>{"tool":"dsh_read","args":{}}</ds_tool>']) assert.ok(protocol.parse(raw).errors.length, raw);
+  }
+  const command = String.raw`cd /d %CD% && del /q .dsh-pro\t4.md 2>nul & dir /b .dsh-pro & echo ---- & dir /b *.md *.txt`;
+  const malformed = '<DSH_TOOL>' + JSON.stringify({ tool: 'dsh_bash', args: { command } }).slice(0, -1) + '</DSH_TOOL>';
+  const h = contentHarness([malformed, call('dsh_bash', { command }), 'Cleanup verified.']);
+  h.state.loopLimit = 5;
+  await h.startRun({ task: 'Clean up test files' });
+  assert.equal(h.saved().stage, 'completed');
+  assert.equal(h.saved().iterationCount, 3);
+  assert.equal(h.requests.length, 1);
+  assert.equal(h.requests[0].body.args.command, command);
+  assert.ok(h.saved().conversationHistory.find((entry) => entry.raw === malformed).parseErrors.length);
 });
 
 test('mixed wrappers share validation and preserve marker literals inside JSON and raw code', () => {

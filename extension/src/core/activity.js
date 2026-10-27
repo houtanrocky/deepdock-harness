@@ -53,8 +53,10 @@ export function activityView(entries = [], { activeRunId, approval = false } = {
       rows.push({ key, kind: 'user', title: 'You', text: entry.content || '', timestamp: entry.timestamp });
     } else if (entry.role === 'assistant') {
       if (entry.parseErrors?.length || entry.deferred) return;
-      if (!entry.tool_calls?.length && protocol.parse(entry.raw || entry.content || '').errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
-        rows.push({ key, kind: 'recovery', title: 'Unexecuted native tool markup', text: 'This saved response used unsupported tool markup. Review the recorded tool results for actions that actually ran.', detail: entry.content, timestamp: entry.timestamp });
+      const capture = protocol.parse(entry.raw || entry.content || '');
+      const nativeMarkup = capture.errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT');
+      if (!entry.tool_calls?.length && (nativeMarkup || capture.calls.length && Array.isArray(entry.tool_calls) || capture.errors.length && /<\/?dsh?[_-]tool\b/i.test(capture.text))) {
+        rows.push({ key, kind: 'recovery', title: nativeMarkup ? 'Unexecuted native tool markup' : 'Unexecuted tool markup', text: 'This saved response contains an unexecuted tool proposal. Review the recorded tool results for actions that actually ran.', detail: entry.content, timestamp: entry.timestamp });
         return;
       }
       const parsed = entry.narration === undefined ? protocol.parse(entry.content || '') : null;

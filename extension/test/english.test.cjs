@@ -199,6 +199,37 @@ test('failed commands include exit status and output even when the shell emits n
   });
 });
 
+test('file writes preserve Markdown and scripts exactly and reject control characters in paths', async (t) => {
+  const { workspace, config } = fixture(t);
+  const ctx = { workspace, config, confirmed: true };
+  const content = '# Heading / path\n- item\n/* comment */\n**bold**\n```java\n// code\n```\n' + String.raw`$lines = Get-Content .dsh-pro\tmp\file; $h = '#'; $s = '*'` + '\n';
+  const written = await runTool('dsh_write', { path: 'tmp/literal.md', content }, ctx);
+  assert.equal(fs.readFileSync(path.join(workspace, 'tmp/literal.md'), 'utf8'), content);
+  const read = await runTool('dsh_read', { path: 'tmp/literal.md' }, ctx);
+  assert.equal(read.sha256, written.sha256);
+  for (const control of ['\t', '\r', '\n', '\b', '\f', '\0']) {
+    for (const tool of ['dsh_write', 'dsh_read', 'dsh_edit']) {
+      await assert.rejects(runTool(tool, { path: 'tmp/' + control + 'bad.md', content, oldText: 'a', newText: 'b' }, ctx), (error) => {
+        assert.equal(error.code, 'E_ARGS_INVALID');
+        assert.match(error.message, /JSON Windows path escapes/);
+        return true;
+      });
+    }
+  }
+});
+
+test('failed Windows commands explain control-character path escapes without rewriting commands', { skip: process.platform !== 'win32' }, async (t) => {
+  const { workspace, config } = fixture(t);
+  const command = 'type .dsh-pro\tmp\\missing-file.md';
+  await assert.rejects(runTool('dsh_bash', { command }, { workspace, config, permissionMode: 'full' }), (error) => {
+    assert.equal(error.code, 'E_COMMAND_FAILED');
+    assert.match(error.message, /literal control characters/);
+    assert.match(error.message, /raw command argument/);
+    assert.equal(error.extra.exitCode, 1);
+    return true;
+  });
+});
+
 test('large writes work and hash-checked chunk appends reject duplicate retries and stale files', async (t) => {
   const { workspace, config } = fixture(t);
   const ctx = { workspace, config, confirmed: false };

@@ -39,12 +39,17 @@ Tools execute on your computer. Relevant prompts, code, and tool results can be 
 
 Download both components from the [latest release](https://github.com/houtanrocky/deepdock-harness/releases/latest):
 
-1. **[Bridge installer](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.3/DeepDock-Harness-Bridge-Setup-0.1.0-x64.exe)** — Windows x64; bundles Node.js. Choose your project folder during setup. The installer copies your pairing token to the clipboard. This community installer is unsigned.
+1. **[Bridge installer](https://github.com/houtanrocky/deepdock-harness/releases/latest)** — Windows x64; bundles Node.js. Choose your project folder during setup. With desktop installer 0.2.0 or newer, open **DeepDock Harness Bridge** from the Start menu, then click **Start bridge** and **Copy token**. The app stays in the tray and does not start the bridge automatically or add itself to Windows startup. This community installer is unsigned. See the [desktop app build guide](scripts/installer/README.md) to build the updated installer locally.
 2. **[Browser extension ZIP](https://github.com/houtanrocky/deepdock-harness/releases/download/v0.2.3/deepdock-harness-0.2.3-chrome.zip)** — extract it, open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the extracted folder containing `manifest.json`.
-3. Open [DeepSeek Chat](https://chat.deepseek.com). In the **DeepDock Harness** panel, open **Settings**, paste the pairing token, and save.
+3. Open [DeepSeek Chat](https://chat.deepseek.com). In the **DeepDock Harness** panel, click **Open Settings > Bridge token**, paste the pairing token into **Bridge token**, and click **Save settings**. The **Help** tab includes setup and troubleshooting steps.
 4. Click **Test connection**, then **Enable agent**. Once the protocol handshake finishes, send your task through the normal composer.
 
 Try: “Read this project’s README and explain its structure.” Then move on to a focused change with a check you can verify.
+
+Use **Stop bridge** in the desktop app or tray menu when finished. Closing the
+window keeps the app in the tray; **Exit** stops the bridge and closes the app.
+For a frozen or older bridge, use the app's confirmed **Force stop bridge...**
+action. Upgrade removes the legacy startup shortcut and keeps your saved token.
 
 Send `/init` after enabling the agent to create project-specific `AGENTS.md`
 instructions, or `/init relative/project` for a subproject. The agent inspects

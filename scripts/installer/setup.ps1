@@ -37,23 +37,8 @@ if (-not (Test-Path -LiteralPath $configPath)) {
     [IO.File]::WriteAllText($configPath, $json + "`n", [Text.UTF8Encoding]::new($false))
 }
 
+# Remove the shortcut created unconditionally by the original installer.
 $startupPath = [Environment]::GetFolderPath('Startup')
 $shortcutPath = Join-Path $startupPath 'DeepDock Harness Bridge.lnk'
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
-$shortcut.Arguments = '"' + (Join-Path $InstallDir 'launch.vbs') + '"'
-$shortcut.WorkingDirectory = $InstallDir
-$shortcut.WindowStyle = 7
-$shortcut.Save()
-
-$null = Set-Clipboard -Value $token
-$launch = Join-Path $env:WINDIR 'System32\wscript.exe'
-Start-Process -FilePath $launch -ArgumentList ('"' + (Join-Path $InstallDir 'launch.vbs') + '"') -WindowStyle Hidden
-Add-Type -AssemblyName System.Windows.Forms
-[void][Windows.Forms.MessageBox]::Show(
-    "DeepDock Harness Bridge is installed and will start when you sign in.`r`n`r`nYour pairing token has been copied to the clipboard. Paste it into DeepDock Harness extension settings.`r`n`r`nProject folder: $($config.allowedRoots[0])`r`nBridge address: http://127.0.0.1:$($config.port)",
-    'DeepDock Harness Bridge is ready',
-    [Windows.Forms.MessageBoxButtons]::OK,
-    [Windows.Forms.MessageBoxIcon]::Information
-)
+if (Test-Path -LiteralPath $shortcutPath) { Remove-Item -LiteralPath $shortcutPath -Force }
+# Setup configures pairing only. The user starts the bridge from the desktop app.

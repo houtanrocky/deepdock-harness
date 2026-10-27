@@ -42,8 +42,19 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
       <button class="dshpro-icon-btn" id="dshpro-settings-toggle" aria-label="Settings" aria-expanded="false" aria-controls="dshpro-settings">${icon('settings')}</button>
       <button class="dshpro-icon-btn" id="dshpro-toggle" aria-label="Collapse panel" aria-expanded="true" aria-controls="dshpro-body">${icon('collapse')}</button>
     </header>
+    <nav class="dshpro-tabs" role="tablist" aria-label="DeepDock views">
+      <button type="button" role="tab" id="dshpro-tab-agent" aria-controls="dshpro-agent-view" aria-selected="true">Agent</button>
+      <button type="button" role="tab" id="dshpro-tab-settings" aria-controls="dshpro-settings" aria-selected="false" tabindex="-1">Settings</button>
+      <button type="button" role="tab" id="dshpro-tab-help" aria-controls="dshpro-help" aria-selected="false" tabindex="-1">Help</button>
+    </nav>
     <div class="dshpro-body" id="dshpro-body">
-      <div id="dshpro-agent-view">
+      <div id="dshpro-agent-view" role="tabpanel" aria-labelledby="dshpro-tab-agent">
+        <section class="dshpro-setup-card" id="dshpro-setup" aria-label="Bridge setup">
+          <h2 id="dshpro-setup-title">Pair your bridge to get started</h2>
+          <p class="dshpro-hint">Open the DeepDock desktop app. Click <strong>Start bridge</strong>, then <strong>Copy token</strong>.</p>
+          <p class="dshpro-hint">Paste it here in <strong>Settings &gt; Bridge token</strong>, then save and test the connection.</p>
+          <button class="dshpro-btn primary" id="dshpro-setup-token">Open Settings &gt; Bridge token ${icon('arrow')}</button>
+        </section>
         <div class="dshpro-status-card">
           <div class="dshpro-status-top"><span class="dshpro-eyebrow">AGENT STATUS</span><span class="dshpro-badge" id="dshpro-connection">OFFLINE</span></div>
           <div class="dshpro-phase" id="dshpro-phase" role="status" aria-live="polite">Disabled</div>
@@ -82,15 +93,29 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
           <details class="dshpro-parser-error" id="dshpro-parser-error" hidden><summary>Last rejected response</summary><pre></pre></details>
         </div>
       </div>
-      <div class="dshpro-settings" id="dshpro-settings" style="display:none">
+      <div class="dshpro-settings" id="dshpro-settings" role="tabpanel" aria-labelledby="dshpro-tab-settings" style="display:none">
         <div class="dshpro-settings-heading"><h2>Settings</h2><p class="dshpro-hint">Connect your device. Tune how your agent runs.</p></div>
+        <div class="dshpro-setup-card"><h2>Pairing: desktop app → Settings → Bridge token</h2><p class="dshpro-hint">In the DeepDock desktop app, click <strong>Copy token</strong>. Paste it into Bridge token below and click <strong>Save settings</strong>. Then <strong>Test connection</strong> and <strong>Enable agent</strong>.</p></div>
+        <div class="dshpro-field"><label class="dshpro-label" for="dshpro-token">Bridge token</label><input class="dshpro-input" id="dshpro-token" type="password" placeholder="Paste the token from the DeepDock app" autocomplete="off" spellcheck="false" aria-describedby="dshpro-token-hint" /><p class="dshpro-field-hint" id="dshpro-token-hint">Copy token in the desktop app, then paste here. Never paste your token into the chat. Saved tokens stay hidden.</p></div>
         <div class="dshpro-field"><label class="dshpro-label" for="dshpro-baseurl">Bridge address</label><input class="dshpro-input" id="dshpro-baseurl" type="url" value="http://127.0.0.1:8765" spellcheck="false" autocomplete="off" /><p class="dshpro-field-hint">Local HTTP bridge on this device.</p></div>
-        <div class="dshpro-field"><label class="dshpro-label" for="dshpro-token">Bridge token</label><input class="dshpro-input" id="dshpro-token" type="password" placeholder="Paste the token from pair.ps1" autocomplete="off" spellcheck="false" /><p class="dshpro-field-hint">Stored in this extension. Never sent to the chat.</p></div>
         <div class="dshpro-field"><label class="dshpro-label" for="dshpro-looplimit">Iteration limit</label><input class="dshpro-input" id="dshpro-looplimit" type="number" min="1" max="1000" /><p class="dshpro-field-hint">1–1000 rounds per task. Default: ${DEFAULT_LOOP_LIMIT}.</p></div>
         <div class="dshpro-field"><label class="dshpro-label" for="dshpro-result-delay">Tool result delay (seconds)</label><input class="dshpro-input" id="dshpro-result-delay" type="number" min="0" max="${MAX_TOOL_RESULT_DELAY_SECONDS}" step="0.1" aria-describedby="dshpro-result-delay-hint" /><p class="dshpro-field-hint" id="dshpro-result-delay-hint">Extra wait before sending tool results, followed by the 2-second cancel preview. 0–${MAX_TOOL_RESULT_DELAY_SECONDS} seconds. Default: ${DEFAULT_TOOL_RESULT_DELAY_SECONDS}.</p></div>
         <details class="dshpro-advanced"><summary>Advanced selectors</summary><label class="dshpro-label" for="dshpro-sel">Custom selectors (JSON)</label><textarea class="dshpro-input" id="dshpro-sel" rows="3" placeholder='{"input":"textarea#chat-input"}' spellcheck="false"></textarea><p class="dshpro-field-hint">Override selectors when the DeepSeek layout changes.</p></details>
         <button class="dshpro-btn primary dshpro-save" id="dshpro-save">Save settings</button>
         <p class="dshpro-field-hint" id="dshpro-settings-feedback" role="status" aria-live="polite"></p>
+      </div>
+      <div id="dshpro-help" role="tabpanel" aria-labelledby="dshpro-tab-help" hidden>
+        <div class="dshpro-settings-heading"><h2>Connect DeepDock in four steps</h2><p class="dshpro-hint">The desktop app runs the bridge. This extension connects it to DeepSeek.</p></div>
+        <ol class="dshpro-help-steps">
+          <li><strong>Open the desktop app.</strong> Launch DeepDock Harness Bridge from the Windows Start menu and click Start bridge.</li>
+          <li><strong>Copy your token.</strong> Click Copy token in the desktop app.</li>
+          <li><strong>Paste in Settings &gt; Bridge token.</strong> Click Save settings, then Test connection.</li>
+          <li><strong>Enable agent.</strong> Choose your workspace and permissions, then send your task in DeepSeek.</li>
+        </ol>
+        <button class="dshpro-btn primary" id="dshpro-help-token">Open Settings &gt; Bridge token ${icon('arrow')}</button>
+        <h2 class="dshpro-help-heading">Start, stop, and the tray</h2><p class="dshpro-hint">The bridge starts when you click Start bridge in the desktop app. Closing its window keeps the app in the Windows tray. Right-click the tray icon to start, stop, or exit. Exit stops the bridge too. DeepDock does not start with Windows.</p>
+        <h2 class="dshpro-help-heading">Connection trouble?</h2><p class="dshpro-hint">Start the bridge, copy the token again, and check that Settings &gt; Bridge address matches the address in the desktop app. Refresh DeepSeek after updating the extension. Stop or finish active tasks before stopping the bridge. If it is frozen, use Force stop bridge in the desktop app.</p>
+        <h2 class="dshpro-help-heading">Using the source scripts?</h2><p class="dshpro-hint">Run scripts/pair.ps1 to start your local bridge and copy its token, then follow the same Settings &gt; Bridge token steps. scripts/stop-deepdock.cmd stops configured local and installed bridges.</p>
       </div>
       <footer class="dshpro-footer"><button class="dshpro-text-btn" id="dshpro-test">${icon('link')}Test connection</button><span id="dshpro-tool-count">Local bridge</span><button class="dshpro-text-btn" id="dshpro-diag">Diagnostics</button></footer>
     </div>`;
@@ -106,22 +131,27 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
     collapsed = !collapsed;
     panel.classList.toggle('dshpro-min', collapsed);
     element('body').hidden = collapsed;
+    (panel.querySelector('.dshpro-tabs') as HTMLElement).hidden = collapsed;
     element('toggle').setAttribute('aria-expanded', String(!collapsed));
     element('toggle').setAttribute('aria-label', collapsed ? 'Expand panel' : 'Collapse panel');
   };
   element('settings-toggle').onclick = () => {
-    const settings = element('settings');
-    const open = settings.style.display === 'none';
-    settings.style.display = open ? 'block' : 'none';
-    element('agent-view').hidden = open;
-    element('settings-toggle').setAttribute('aria-expanded', String(open));
-    if (collapsed) element('toggle').click();
-    if (open) element('baseurl').focus();
+    showPanelView(document, element('settings').style.display === 'none' ? 'settings' : 'agent');
   };
+  const views = ['agent', 'settings', 'help'] as const;
+  for (const [index, view] of views.entries()) {
+    element(`tab-${view}`).onclick = () => showPanelView(document, view);
+    element(`tab-${view}`).onkeydown = (event) => {
+      const next = event.key === 'ArrowRight' ? (index + 1) % views.length : event.key === 'ArrowLeft' ? (index + views.length - 1) % views.length : event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : -1;
+      if (next < 0) return;
+      event.preventDefault(); showPanelView(document, views[next]!); element(`tab-${views[next]}`).focus();
+    };
+  }
+  for (const id of ['setup-token', 'help-token']) element(id).onclick = () => showPanelView(document, 'settings');
   for (const [id, action] of Object.entries({ enable: actions.enable, stop: actions.stop, reset: actions.reset, resume: actions.resume, save: actions.saveSettings })) {
     element(id).onclick = () => { void action(); };
   }
-  element('test').onclick = async () => { await actions.connect(); showAgentView(document); };
+  element('test').onclick = async () => { await actions.connect(); showPanelView(document, panel.dataset.connected === 'true' ? 'agent' : 'settings'); };
   element('diag').onclick = () => { showAgentView(document); actions.diagnose(); };
   element<HTMLSelectElement>('permissions').onchange = () => { void actions.savePermissions(); };
   element<HTMLSelectElement>('workspace').onchange = () => actions.workspace(element<HTMLSelectElement>('workspace').value);
@@ -129,10 +159,23 @@ export function mountPanel(document: Document, actions: PanelActions): HTMLEleme
 }
 
 export function showAgentView(document: Document): void {
+  showPanelView(document, 'agent');
+}
+
+export function showPanelView(document: Document, view: 'agent' | 'settings' | 'help'): void {
   const settings = document.getElementById('dshpro-settings');
-  if (settings && settings.style.display !== 'none') document.getElementById('dshpro-settings-toggle')?.click();
+  if (!settings) return;
+  settings.style.display = view === 'settings' ? 'block' : 'none';
+  document.getElementById('dshpro-agent-view')!.hidden = view !== 'agent';
+  document.getElementById('dshpro-help')!.hidden = view !== 'help';
+  document.getElementById('dshpro-settings-toggle')!.setAttribute('aria-expanded', String(view === 'settings'));
+  for (const name of ['agent', 'settings', 'help']) {
+    const tab = document.getElementById(`dshpro-tab-${name}`)!;
+    tab.setAttribute('aria-selected', String(name === view)); tab.tabIndex = name === view ? 0 : -1;
+  }
   const toggle = document.getElementById('dshpro-toggle');
   if (toggle?.getAttribute('aria-expanded') === 'false') toggle.click();
+  if (view === 'settings') document.getElementById('dshpro-token')?.focus();
 }
 
 export function renderPanelState(document: Document, state: PanelState): void {
@@ -149,6 +192,8 @@ export function renderPanelState(document: Document, state: PanelState): void {
   button('enable').querySelector('span')!.textContent = state.enabled ? 'Disable agent' : 'Enable agent';
   button('enable').querySelector('svg')!.innerHTML = icons[state.enabled ? 'stop' : 'play'];
   button('test').disabled = active;
+  document.getElementById('dshpro-setup')!.hidden = state.connected;
+  document.getElementById('dshpro-setup-title')!.textContent = state.token ? 'Reconnect your bridge' : 'Pair your bridge to get started';
   document.getElementById('dshpro-connection')!.textContent = state.connected ? 'CONNECTED' : 'OFFLINE';
   document.getElementById('dshpro-tool-count')!.textContent = state.connected ? `${state.tools?.tools.length || 0} tools available` : 'Local bridge';
   const progress = document.getElementById('dshpro-progress') as HTMLProgressElement;
@@ -159,5 +204,5 @@ export function renderPanelState(document: Document, state: PanelState): void {
     : active ? 'Working in this conversation. You can stop at any time.'
     : state.enabled ? 'Send a task in DeepSeek. Your agent will take it from here.'
     : state.connected ? 'Your workspace is connected. Enable the agent to get started.'
-    : 'Connect your bridge to bring local tools into this chat.';
+    : 'Start the desktop bridge. Copy token, then open Settings > Bridge token.';
 }

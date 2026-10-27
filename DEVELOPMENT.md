@@ -91,13 +91,25 @@ The product is now called DeepDock Harness. Existing `dsh_` tool names, DSH prot
 | Script | Purpose |
 | --- | --- |
 | `start-deepdock.cmd` | Start or refresh the idle bridge |
-| `stop-deepdock.cmd` | Shut down an idle bridge using its token |
+| `stop-deepdock.cmd` | Shut down source and installed bridges using each saved configuration |
 | `pair.ps1` | Verify pairing and copy the saved token; `-RotateToken` explicitly changes it |
 | `start-bridge.ps1` | PowerShell entrypoint for start, or stop with `-Stop` |
 | `bridge.mjs` | Shared implementation used by all launchers |
 | `dev-manual.mjs` | WXT development server without opening a browser |
 
 A 401 from a bridge started before these fixes means the running process has an older token than the configuration file. Stop tasks, close that bridge console, then run `start-deepdock.cmd`. The controller reports this mismatch without changing credentials or killing a process whose active work it cannot inspect. After pairing succeeds, paste the copied token into the extension Settings.
+
+For installed bridges, use the native desktop app's **Bridge** and **Help & setup**
+tabs. Opening the app leaves the bridge stopped; it has no startup registration.
+The tray menu exposes the same controls. **Exit** stops the bridge before closing.
+If authenticated shutdown cannot reach a frozen or legacy bridge, **Force stop
+bridge...** shows the detected process paths and confirms interruption. Recovery
+checks the Node entrypoint, PID, Windows account, and creation time. It also finds
+older DeepDock bridges using the configured loopback port, including a different
+install folder or system Node runtime, by verifying their server code and port
+ownership. Bridges on other ports and unrelated services are excluded. Recovery
+does not rely on an HTTP shutdown endpoint or a matching token. See the
+[installer guide](scripts/installer/README.md) for building and testing the app.
 
 Finish or stop active tasks in the old extension, then disable it before loading the WXT build. Chrome assigns unpacked extension identities by their load path, so `.output/chrome-mv3/` has separate storage from the old `extension/` directory and from the development build. Run `pair.ps1` to verify the bridge and copy its existing token; only `-RotateToken` changes an existing pairing. Do not run both extensions in the same chat.
 

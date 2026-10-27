@@ -164,6 +164,24 @@ test('a legacy task falsely completed on DSML offers Resume without replaying th
   expect(bridge.calls.map((call) => call.tool)).toEqual(['dsh_read']);
 });
 
+test('a legacy task falsely completed on DSH_TOOL offers Resume and regenerates the malformed proposal', async ({ chat, bridge, worker }) => {
+  const key = 'dshpro:conversation:' + chat.url();
+  const malformed = '<DSH_TOOL>{"tool":"dsh_bash","args":{"command":"echo cleanup"}</DSH_TOOL>';
+  await worker.evaluate(({ key, malformed }) => chrome.storage.local.set({ [key]: {
+    revision: 0, iterationCount: 25, stage: 'completed', inProgress: false,
+    conversationHistory: [{ role: 'user', content: 'Verify cleanup.' }, { role: 'assistant', content: malformed, raw: malformed, narration: '', parseErrors: [], tool_calls: [] }],
+  }, loopLimit: 30 }), { key, malformed });
+  await chat.reload();
+  await expect(chat.locator('#dshpro-resume')).toBeVisible();
+  await expect(chat.locator('#dshpro-timeline')).toContainText('Unexecuted tool markup');
+  await queue(chat, [{ html: '<DSH_TOOL>{"tool":"dsh_bash","args":{"command":"echo cleanup"}</DSH_TOOL>' }, { html: '<DSH_TOOL>{"tool":"dsh_bash","args":{"command":"echo cleanup"}}</DSH_TOOL>' }, 'Cleanup verified.']);
+  await chat.locator('#dshpro-resume').click();
+  await expect.poll(() => bridge.calls.map((call) => call.tool)).toEqual(['dsh_bash']);
+  await complete(chat, worker);
+  expect((await checkpoint(chat, worker)).iterationCount).toBe(28);
+  expect(bridge.calls[0].args.command).toBe('echo cleanup');
+});
+
 test('conversation history explains live steps, shows file diffs and output, and survives reload', async ({ chat, bridge, worker }, info) => {
   bridge.toolDelayMs = 1800;
   bridge.toolData.set('dsh_edit', { file: 'app.js', replaced: 1, sha256: 'new-hash', change: {
@@ -264,11 +282,16 @@ test('history loads older entries, preserves scrollback during new activity, and
   expect((await checkpoint(chat, worker)).conversationHistory[70].content).toContain(TOKEN);
 });
 
-test('first-use pairing through Settings connects and starts a working agent', async ({ chat, bridge, worker }) => {
+test('first-use pairing prompt opens the token field and connects a working agent', async ({ chat, bridge, worker }, info) => {
   await worker.evaluate(() => chrome.storage.local.clear());
   await chat.reload();
   await expect(chat.locator('#dshpro-connection')).toHaveText('OFFLINE');
-  await chat.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(chat.getByRole('region', { name: 'Bridge setup' })).toBeVisible();
+  await chat.screenshot({ path: info.outputPath('first-use-pairing.png') });
+  await chat.locator('#dshpro-setup-token').click();
+  await expect(chat.getByLabel('Bridge token', { exact: true })).toBeFocused();
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await expect(chat.locator('#dshpro-settings-feedback')).toContainText('Copy token');
   await chat.getByLabel('Bridge address').fill(bridge.baseUrl);
   await chat.getByLabel('Bridge token', { exact: true }).fill(TOKEN);
   await chat.getByRole('button', { name: 'Save settings' }).click();
@@ -277,11 +300,39 @@ test('first-use pairing through Settings connects and starts a working agent', a
   await chat.getByRole('button', { name: 'Test connection', exact: true }).click();
   await expect(chat.locator('#dshpro-settings')).toBeHidden();
   await expect(chat.locator('#dshpro-connection')).toHaveText('CONNECTED');
+  await expect(chat.locator('#dshpro-setup')).toBeHidden();
   await enable(chat);
   await queue(chat, [tool('dsh_read', { path: 'first-task.txt' }), 'Done.']);
   await submit(chat, 'Read first-task.txt');
   await complete(chat, worker);
   expect(bridge.applied[0].args.path).toBe('first-task.txt');
+});
+
+test('Help tab explains pairing and links directly to Settings > Bridge token', async ({ chat }, info) => {
+  await chat.getByRole('tab', { name: 'Help', exact: true }).click();
+  await expect(chat.getByRole('tabpanel', { name: 'Help', exact: true })).toContainText('Copy your token');
+  await expect(chat.locator('#dshpro-agent-view')).toBeHidden();
+  await expect(chat.locator('#dshpro-settings')).toBeHidden();
+  await chat.screenshot({ path: info.outputPath('help-setup.png') });
+  await chat.locator('#dshpro-help-token').click();
+  await expect(chat.getByRole('tab', { name: 'Settings', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(chat.getByLabel('Bridge token', { exact: true })).toBeFocused();
+  await chat.getByRole('tab', { name: 'Settings', exact: true }).press('ArrowRight');
+  await expect(chat.getByRole('tab', { name: 'Help', exact: true })).toBeFocused();
+  await chat.getByRole('tab', { name: 'Agent', exact: true }).click();
+  await expect(chat.locator('#dshpro-agent-view')).toBeVisible();
+});
+
+test('a rejected token keeps connection recovery in Settings', async ({ chat }) => {
+  await chat.getByRole('tab', { name: 'Settings', exact: true }).click();
+  await chat.getByLabel('Bridge token', { exact: true }).fill('incorrect-token');
+  await chat.getByRole('button', { name: 'Save settings' }).click();
+  await chat.getByRole('button', { name: 'Test connection', exact: true }).click();
+  await expect(chat.locator('#dshpro-settings')).toBeVisible();
+  await expect(chat.getByLabel('Bridge token', { exact: true })).toBeFocused();
+  await chat.getByRole('tab', { name: 'Agent', exact: true }).click();
+  await expect(chat.locator('#dshpro-phase')).toContainText('Token rejected');
+  await expect(chat.locator('#dshpro-setup')).toBeVisible();
 });
 
 test('packaged extension drives the semantic chat, repairs JSON, and records sequential tools', async ({ chat, bridge, worker }) => {
@@ -318,6 +369,35 @@ test('five valid calls reject atomically and recover with a dedicated limit mess
   expect(recovery).toContain('No calls from that rejected response executed, including the first 3');
   expect(recovery).toContain('"kind":"rejected-response"');
   expect(recovery).not.toContain('Your JSON was malformed');
+});
+
+test('rendered Markdown tool arguments are rejected before any calls execute and recover through a literal code block', async ({ chat, bridge, worker }) => {
+  await enable(chat);
+  const literal = '# Title / path\n- item\n**bold** and *italic*\n```java\n/* comment */\n```\n' + String.raw`$lines = Get-Content .dsh-pro\tmp\test; $h = '# / - *'` + '\n';
+  const block = `⟦DSH⟧\n{"tool":"dsh_write","args":{"path":"README.md"}}\n⟦DSH:ARG:content⟧\n${literal}\n⟦/DSH:ARG:content⟧\n⟦/DSH⟧`;
+  const escape = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  const damaged = '<p>' + tool('dsh_read', { path: 'must-not-execute.txt' }) + '</p><p>⟦DSH⟧\n{"tool":"dsh_write","args":{"path":"README.md"}}\n⟦DSH:ARG:content⟧</p><h1>Title / path</h1><ul><li>item</li></ul><p><strong>bold</strong> and <em>italic</em></p><p>⟦/DSH:ARG:content⟧\n⟦/DSH⟧</p>';
+  await queue(chat, [{ html: damaged }, { html: '<p><strong>Writing the file</strong></p><pre><code>' + escape(block) + '</code></pre>' }, 'Written.']);
+  await submit(chat, 'Write Markdown preserving punctuation');
+  await complete(chat, worker);
+  expect(bridge.calls.map((call) => call.tool)).toEqual(['dsh_write']);
+  expect(bridge.applied[0].args.content).toBe(literal);
+  const saved = await checkpoint(chat, worker);
+  expect(saved.conversationHistory.find((entry: any) => entry.parseErrors?.length).parseErrors[0].code).toBe('E_RENDERED_TOOL_TEXT');
+  const sent = await chat.evaluate(() => (window as any).fixture.sent as string[]);
+  expect(sent.some((message) => message.includes('Markdown rendering changed your tool text'))).toBe(true);
+});
+
+test('inline math damage is rejected and raw command blocks preserve Windows paths and dollar variables', async ({ chat, bridge, worker }) => {
+  await enable(chat);
+  const command = String.raw`powershell -NoProfile -Command "$lines = Get-Content -LiteralPath .dsh-pro\tmp\gen.ps1; $h = '# / - *'"`;
+  const block = `⟦DSH⟧\n{"tool":"dsh_bash","args":{}}\n⟦DSH:ARG:command⟧\n${command}\n⟦/DSH:ARG:command⟧\n⟦/DSH⟧`;
+  const damaged = '<p>⟦DSH⟧{"tool":"dsh_bash","args":{"command":"<span class="katex">lines = Get-Content; h = 35</span>"}}⟦/DSH⟧</p>';
+  await queue(chat, [{ html: damaged }, { html: '<pre><code>' + block + '</code></pre>' }, 'Completed.']);
+  await submit(chat, 'Read the generated script');
+  await complete(chat, worker);
+  expect(bridge.calls).toHaveLength(1);
+  expect(bridge.calls[0].args.command).toBe(command);
 });
 
 test('observed DeepSeek layout preserves raw HTML, YAML, and XML tool wrappers', async ({ chat, bridge, worker }) => {

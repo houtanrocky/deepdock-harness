@@ -39,10 +39,27 @@ New-Item -ItemType Directory -Path $bridgeBuild -Force | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $repoRoot 'bridge') -Filter '*.js' -File |
     Copy-Item -Destination $bridgeBuild -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'bridge\tool-modules') -Destination $bridgeBuild -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $installerDir 'bridge-host.js') -Destination $buildDir -Force
-Copy-Item -LiteralPath (Join-Path $installerDir 'launch.vbs') -Destination $buildDir -Force
-Copy-Item -LiteralPath (Join-Path $installerDir 'stop.vbs') -Destination $buildDir -Force
+Copy-Item -LiteralPath (Join-Path $installerDir 'bridge-host.cjs') -Destination $buildDir -Force
+New-Item -ItemType Directory -Path (Join-Path $buildDir 'scripts') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repoRoot 'scripts\bridge.mjs') -Destination (Join-Path $buildDir 'scripts') -Force
+Copy-Item -LiteralPath (Join-Path $installerDir 'start-deepdock.cmd') -Destination $buildDir -Force
+Copy-Item -LiteralPath (Join-Path $installerDir 'stop-deepdock.cmd') -Destination $buildDir -Force
 Copy-Item -LiteralPath (Join-Path $installerDir 'setup.ps1') -Destination $buildDir -Force
+
+$csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+if (-not (Test-Path -LiteralPath $csc)) { throw 'The .NET Framework 4 C# compiler is required to build the Windows desktop app.' }
+# Wrap the existing brand PNG in an ICO directory for the app and tray icon.
+$iconPath = Join-Path $buildDir 'DeepDock.ico'
+$iconBytes = [IO.File]::ReadAllBytes((Join-Path $repoRoot 'extension\public\icons\icon128.png'))
+$iconWriter = [IO.BinaryWriter]::new([IO.File]::Create($iconPath))
+try {
+    $iconWriter.Write([uint16]0); $iconWriter.Write([uint16]1); $iconWriter.Write([uint16]1)
+    $iconWriter.Write([byte]128); $iconWriter.Write([byte]128); $iconWriter.Write([byte]0); $iconWriter.Write([byte]0)
+    $iconWriter.Write([uint16]1); $iconWriter.Write([uint16]32)
+    $iconWriter.Write([uint32]$iconBytes.Length); $iconWriter.Write([uint32]22); $iconWriter.Write($iconBytes)
+} finally { $iconWriter.Dispose() }
+& $csc /nologo /target:winexe /platform:x64 /optimize+ ("/win32icon:" + $iconPath) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.Management.dll ("/out:" + (Join-Path $buildDir 'DeepDock.exe')) (Join-Path $installerDir 'DeepDock.cs') (Join-Path $installerDir 'BridgeRecovery.cs')
+if ($LASTEXITCODE -ne 0) { throw 'Could not compile the DeepDock desktop app.' }
 
 $compiler = Get-Command $InnoCompiler -ErrorAction SilentlyContinue
 if (-not $compiler) {

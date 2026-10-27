@@ -6,7 +6,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { execFile, spawn } = require('node:child_process');
 const { promisify } = require('node:util');
-const { manageBridge } = require('../../scripts/bridge.mjs');
+const { manageBridge, stopConfiguredBridges } = require('../../scripts/bridge.mjs');
 const exec = promisify(execFile);
 const project = path.resolve(__dirname, '../..');
 const TOKEN = 'fixture-pairing-token'.padEnd(64, '0');
@@ -24,22 +24,25 @@ async function fixture(t, overrides = {}) {
   fs.cpSync(path.join(project, 'bridge'), path.join(root, 'bridge'), {
     recursive: true, filter: (file) => !/\.(?:log|jsonl)$/.test(file) && path.basename(file) !== 'config.json',
   });
-  fs.cpSync(path.join(project, 'scripts'), path.join(root, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(project, 'scripts'), path.join(root, 'scripts'), { recursive: true, filter: (file) => file !== path.join(project, 'scripts/installer/build') });
   const probe = http.createServer();
   const port = await listen(probe);
   await close(probe);
   const file = path.join(root, 'bridge/config.json');
   fs.writeFileSync(file, JSON.stringify({ token: TOKEN, port, allowedRoots: [root], ...overrides }, null, 2));
   const manage = (action, options = {}) => manageBridge(action, { root, log() {}, ...options });
+  const configDirs = [path.join(root, 'bridge')];
   t.after(async () => {
     // Only this fixture's authenticated process can be shut down by cleanup.
-    try { await manage('stop'); } catch {}
+    for (const configDir of configDirs) {
+      try { await manageBridge('stop', { root, configDir, log() {} }); } catch {}
+    }
     const absolute = fs.realpathSync(root);
     assert.ok(absolute.startsWith(fs.realpathSync(os.tmpdir()) + path.sep));
     assert.ok(path.basename(absolute).startsWith('deepdock scripts-'));
     fs.rmSync(root, { recursive: true, force: true });
   });
-  return { root, port, file, manage, config: () => JSON.parse(fs.readFileSync(file)) };
+  return { root, port, file, manage, configDirs, config: () => JSON.parse(fs.readFileSync(file)) };
 }
 async function mock(t, handler) {
   const calls = [];
@@ -140,6 +143,59 @@ test('a different service on the configured port is never shut down', async (t) 
   await assert.rejects(f.manage('start'), /another service/);
   await assert.rejects(f.manage('stop'), /another service/);
   assert.ok(service.calls.every((call) => call === 'GET /health'));
+});
+
+test('installed controller reports stopped without starting, then starts and stops the authenticated bridge', async (t) => {
+  const f = await fixture(t);
+  const appData = path.join(f.root, 'user profile');
+  const configDir = path.join(appData, 'DeepDock');
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.copyFileSync(f.file, path.join(configDir, 'config.json'));
+  fs.unlinkSync(f.file);
+  const host = path.join(f.root, 'bridge-host.cjs');
+  fs.copyFileSync(path.join(project, 'scripts/installer/bridge-host.cjs'), host);
+  const run = async (action) => {
+    const result = await exec(process.execPath, [host, action], { windowsHide: true, env: { ...process.env, APPDATA: appData }, timeout: 25000 });
+    assert.ok(!result.stdout.includes(TOKEN));
+    return JSON.parse(result.stdout);
+  };
+  f.configDirs.push(configDir);
+  assert.equal((await run('status')).running, false);
+  assert.equal((await run('status')).running, false);
+  assert.equal((await run('start')).running, true);
+  assert.equal((await run('start')).workspace, f.root);
+  assert.equal(fs.existsSync(path.join(configDir, 'logs/bridge.stdout.log')), true);
+  await stopConfiguredBridges({ root: f.root, appData, log() {} });
+  assert.equal((await run('status')).running, false);
+  assert.equal((await run('stop')).running, false);
+});
+
+test('stop script controller shuts down both source and installed bridges with their own configurations', async (t) => {
+  const source = await fixture(t);
+  const installed = await fixture(t);
+  const appData = path.join(installed.root, 'profile');
+  const configDir = path.join(appData, 'DeepDock');
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.copyFileSync(installed.file, path.join(configDir, 'config.json'));
+  await source.manage('start');
+  await manageBridge('start', { root: installed.root, configDir, log() {} });
+  installed.configDirs.push(configDir);
+  await exec(process.execPath, [path.join(source.root, 'scripts/bridge.mjs'), 'stop'], { windowsHide: true, env: { ...process.env, APPDATA: appData }, timeout: 25000 });
+  assert.equal((await source.manage('status')).running, false);
+  assert.equal((await manageBridge('status', { root: installed.root, configDir })).running, false);
+});
+
+test('stop still reaches the installed bridge when the source configuration has an error', async (t) => {
+  const f = await fixture(t);
+  const appData = path.join(f.root, 'profile');
+  const configDir = path.join(appData, 'DeepDock');
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.copyFileSync(f.file, path.join(configDir, 'config.json'));
+  await manageBridge('start', { root: f.root, configDir, log() {} });
+  f.configDirs.push(configDir);
+  fs.writeFileSync(f.file, '{broken');
+  await assert.rejects(stopConfiguredBridges({ root: f.root, appData, log() {} }), /parse/);
+  assert.equal((await manageBridge('status', { root: f.root, configDir })).running, false);
 });
 
 test('PowerShell pairing wrapper reuses credentials and copies only the verified token', { skip: process.platform !== 'win32' }, async (t) => {

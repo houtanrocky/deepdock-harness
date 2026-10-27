@@ -90,7 +90,7 @@ export const protocol = (() => {
   }
 
   function nextOpening(text, position) {
-    const pattern = /\u27e6DSH\u27e7|<(ds[_-]tool)\s*>/gi;
+    const pattern = /\u27e6DSH\u27e7|<(dsh?[_-]tool)\s*>/gi;
     pattern.lastIndex = position;
     const match = pattern.exec(text);
     return match ? { start: match.index, end: pattern.lastIndex, tag: match[1]?.toLowerCase() || null } : null;
@@ -161,8 +161,10 @@ export const protocol = (() => {
     return { call: { tool: header.tool, args, ...(summary ? { summary } : {}) }, end: close.end, repaired };
   }
 
-  function parse(raw, { maxCalls = 3, knownTools } = {}) {
+  function parse(raw, { maxCalls = 3, knownTools, renderedRanges = [] } = {}) {
     const text = sanitize(raw);
+    const sourceOffset = String(raw || '').indexOf(text);
+    const wasRendered = (start, end) => renderedRanges.some((range) => range.start < end + sourceOffset && range.end > start + sourceOffset);
     const calls = [];
     const errors = [];
     let repaired = false;
@@ -182,11 +184,13 @@ export const protocol = (() => {
         repaired ||= parsed.repaired;
         position = parsed.end;
         spans.push({ start, end: parsed.end });
+        if (wasRendered(start, parsed.end)) throw new Error('Tool text was changed by Markdown rendering. Regenerate the entire tool block inside a fenced text code block.');
         if (knownTools && !knownTools.includes(parsed.call.tool)) throw new Error('Unknown tool: ' + parsed.call.tool);
         calls.push(parsed.call);
       } catch (error) {
         const close = nextClosing(text, wrapper.end, wrapper);
-        errors.push({ block: blocks, message: error.message, raw: error.raw || text.slice(wrapper.end, close ? close.start : text.length) });
+        const rendered = wasRendered(start, position > start ? position : close ? close.end : text.length);
+        errors.push({ block: blocks, ...(rendered ? { code: 'E_RENDERED_TOOL_TEXT' } : {}), message: rendered ? 'Tool text was changed by Markdown rendering. Regenerate the entire tool block inside a fenced text code block.' : error.message, raw: error.raw || text.slice(wrapper.end, close ? close.start : text.length) });
         // Skip a rejected, closed block so marker literals inside malformed
         // arguments cannot masquerade as extra calls. Any error rejects the turn.
         position = Math.max(position, close ? close.end : wrapper.end);
@@ -200,7 +204,7 @@ export const protocol = (() => {
     if (foreignToolMarkup.test(outside)) {
       errors.push({ block: blocks + 1, code: 'E_UNSUPPORTED_TOOL_FORMAT', message: 'Unsupported native tool-call markup (DSML). Use DSH markers and tools from the live catalog.', raw: outside });
     }
-    if (!errors.length && (/\u27e6\/?D(?:S(?:H)?)?|\u27e6\/?$|<\/?ds[_-]tool\b/i.test(outside.trimEnd()) || /(?:^|\n)\s*(?:```(?:json|text)?\s*)?\{\s*"tool"\s*:/.test(outside))) {
+    if (!errors.length && (/\u27e6\/?D(?:S(?:H)?)?|\u27e6\/?$|<\/?dsh?[_-]tool\b/i.test(outside.trimEnd()) || /(?:^|\n)\s*(?:```(?:json|text)?\s*)?\{\s*"tool"\s*:/.test(outside))) {
       errors.push({ block: blocks + 1, message: 'Unrecognized or incomplete tool framing. Use a complete DSH block with both opening and closing markers.', raw: outside });
     }
     if (!calls.length && !errors.length && /^(?:(?:```\s*)?(?:text|safe)?\s*(?:```)?)$/i.test(text)) {

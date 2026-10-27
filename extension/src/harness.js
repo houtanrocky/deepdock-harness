@@ -4,7 +4,7 @@ import { initCommand, initMessage, projectInstructionsMessage } from './core/pro
 import { selectors } from './adapters/selectors.js';
 import { createDeepSeekAdapter } from './adapters/deepseek.js';
 import { DEFAULT_LOOP_LIMIT, DEFAULT_TOOL_RESULT_DELAY_SECONDS, MAX_TOOL_RESULT_DELAY_SECONDS, PERMISSION_MODES, normalizeBridgeUrl, normalizeToolResultDelaySeconds } from './contracts.ts';
-import { mountPanel, renderPanelState, showAgentView } from './ui/panel.ts';
+import { mountPanel, renderPanelState, showAgentView, showPanelView } from './ui/panel.ts';
 import { renderActivity } from './ui/activity.js';
 
 // DeepDock Harness: one cancellable async loop per task. Status labels describe the UI;
@@ -151,10 +151,13 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   async function loadConversation(url = conversationUrl()) {
     const data = (await message({ type: 'conversationLoad', url })).data;
     const lastAssistant = [...data.conversationHistory].reverse().find((entry) => entry.role === 'assistant');
-    // Older versions could treat native tool markup as a final answer. Offer
+    // Older versions could treat tool markup as a final answer. Offer
     // explicit Resume for those checkpoints; never replay or execute the markup.
-    if (data.stage === 'completed' && lastAssistant && protocol.parse(lastAssistant.raw || lastAssistant.content).errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
-      return { ...data, stage: 'error', inProgress: true };
+    if (data.stage === 'completed' && lastAssistant) {
+      const parsed = protocol.parse(lastAssistant.raw || lastAssistant.content);
+      if (parsed.errors.length || parsed.calls.length) return { ...data, stage: 'error', inProgress: true, conversationHistory: [...data.conversationHistory, {
+        role: 'system', kind: 'parse-error', content: 'A previous version marked an unexecuted tool response as complete. No calls from that final response executed. Regenerate the remaining action in one complete fenced DSH block; do not assume it ran or replay earlier successful tools.',
+      }] };
     }
     return data;
   }
@@ -194,7 +197,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       `Never emit more than ${MAX_CALLS} tool calls in one response. Exceeding this limit rejects the entire response; none of its calls execute.`,
       'Each tool call needs its own complete opening and closing markers. A completed JSON object still needs its closing DSH marker.',
       'Include a short user-facing explanation in the tool header summary field, for example {"tool":"dsh_read","summary":"I am checking the existing settings before changing them.","args":{"path":"settings.json"}}. Explain the immediate purpose and, when useful, what the preceding result established. The user sees these summaries in the activity history. Keep summaries factual and concise; do not include private reasoning. When finished, explain the changes made and checks performed in your final response.',
-      'For long files, send content in small chunks (aim below 1.5 KB per chunk). Use dsh_write for the first chunk, then dsh_write with append:true and expectedSha256 from the preceding write/read. Use dsh_read to verify each chunk before appending. This is output-truncation guidance, not a bridge byte limit. Never repeat an uncertain write without inspecting the current file.',
+      'For long files, send content in small chunks (aim below 1.5 KB per chunk). Use dsh_write for the first chunk, then dsh_write with append:true and expectedSha256 from the preceding successful write/read. A successful write returns the new file hash; use it for the next append without rereading every chunk. Read back the completed file to verify it. This is output-truncation guidance, not a bridge byte limit. Never repeat an uncertain write without inspecting the current file.',
       'Only the tools in this live catalog are available. JSON strings must escape quotes and newlines.',
       'Use only DSH tool blocks. Native DSML/function_calls/invoke markup is unsupported and will be rejected. The shell tool is named dsh_bash, not bash. After any tool error, continue using the same DSH format.',
       'Saved-output paths are relative to the workspace named in the result, even when a shell command used cd. Follow the returned readWith call exactly. Never prepend ../ to a returned .dsh-pro/outputs path.',
@@ -204,7 +207,8 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       '```text', protocol.OPEN, '{"tool":"dsh_write","args":{"path":"index.html"}}',
       '⟦DSH:ARG:content⟧', '<a href="link">Literal code; no JSON escaping needed.</a>', '⟦/DSH:ARG:content⟧', protocol.CLOSE, '```',
       'Raw argument markers must each occupy their own line. Other string arguments (including planText, oldText, and newText) use the same format.',
-      'Always put the ENTIRE tool block in a fenced text code block when it contains raw code, YAML, indentation, or literal template expressions. Preserve every leading space and newline inside that code block. GitHub Actions ${{ ... }} expressions are ordinary literal text and do not conflict with DSH markers.',
+      'Always put the ENTIRE tool block inside one fenced text code block. Use a fence longer than any backtick run in the payload (for example four backticks around Markdown containing triple backticks). Unfenced Markdown headings, lists, emphasis, links, and math can lose #, -, *, backslashes, or $ expressions before the extension reads them. Preserve every character and all indentation inside the code block. GitHub Actions ${{ ... }} expressions are ordinary literal text and do not conflict with DSH markers.',
+      'Use dsh_write or dsh_edit for file content, including Markdown and scripts; do not fall back to shell echo or character-code workarounds for punctuation. For paths in JSON use forward slashes where supported, or double every backslash. In JSON, \\t, \\r, \\n, \\b, and \\f are control-character escapes, not Windows path separators. Prefer a raw command argument inside the outer fence for Windows commands, backslashes, and PowerShell $variables. Raw arguments need no JSON escaping. Inspect error stdout/stderr before retrying a failed command.',
       ...(handoffReady ? ['A local agent executable is present; its separate provider credentials may be unverified. For handoff put a self-contained plan with acceptance criteria in dsh_handoff.planText and end the response. If it reports E_MISSING_CREDENTIAL, continue with direct tools.'] : ['Handoff is unavailable in this connection. Use the available direct tools.']),
       ...(names.has('dsh_github_status') && names.has('dsh_github_create') && names.has('dsh_git_push') ? ['For GitHub publishing, check dsh_github_status and use the dedicated Git/GitHub tools with an explicit project path and user-supplied repository destination. Approvals are handled by the extension permission setting. After dsh_github_create, use dsh_git_push to publish commits.'] : []),
       'When complete, reply with a summary and no tool calls; preferably add a separate line DSH:DONE:your summary.',
@@ -293,7 +297,9 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     if (parsed.errors.some((error) => /"tool"\s*:\s*"dsh_write"/.test(error.raw || ''))) run.data.writeFailures++;
     const framingError = parsed.errors.some((error) => /marker|framing|Incomplete tool call/i.test(error.message));
     let text;
-    if (parsed.errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
+    if (parsed.errors.some((error) => error.code === 'E_RENDERED_TOOL_TEXT')) {
+      text = '[DeepDock Harness System] Markdown rendering changed your tool text, so its original punctuation cannot be recovered reliably. Regenerate the intended tool call from the task inside ONE fenced text code block, with all DSH markers inside the fence. Choose a fence longer than any backtick run in the payload. Use raw arguments for content or commands; preserve #, /, -, *, backslashes, $variables, and indentation literally. Use dsh_write/dsh_edit for files instead of shell echo workarounds.';
+    } else if (parsed.errors.some((error) => error.code === 'E_UNSUPPORTED_TOOL_FORMAT')) {
       text = '[DeepDock Harness System] Your reply used unsupported native DSML tool markup. No calls from that rejected response executed. Regenerate the intended action as one DSH block using the live catalog. For commands use dsh_bash, not bash. Do not translate or execute the damaged DSML parameter text automatically. Example: ' + protocol.OPEN + '{"tool":"dsh_bash","args":{"command":"dir /b"}}' + protocol.CLOSE;
     } else if (parsed.errors.some((error) => error.code === 'E_TOO_MANY_CALLS')) {
       text = `[DeepDock Harness System] Your response exceeded the tool-call limit (${MAX_CALLS} per response). No calls from that rejected response executed, including the first ${MAX_CALLS}. Split the pending actions across responses, starting with exactly ONE complete tool call. Wait for its result before requesting the next action.`;
@@ -496,7 +502,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       await adoptConversation(run);
       run.allowNewConversation = false;
       checkRun(run);
-      const parsed = protocol.parse(response.raw, { maxCalls: MAX_CALLS, knownTools: availableTools().map((tool) => tool.name) });
+      const parsed = protocol.parse(response.raw, { maxCalls: MAX_CALLS, knownTools: availableTools().map((tool) => tool.name), renderedRanges: response.renderedRanges });
       if (!handshake) run.data.pendingToolResults = false;
       const needsInstructionCheck = !handshake && !parsed.errors.length && parsed.calls.length > 0 && state.health?.capabilities?.projectInstructions;
       // Preserve the raw proposal before discovery, including if its approval is
@@ -680,8 +686,12 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
   }
   async function doConnectTest() {
     try {
+      if (!state.token) {
+        showPanelView(document, 'settings');
+        throw fail('Copy token in the DeepDock desktop app, then paste it in Settings > Bridge token and click Save settings.');
+      }
       const health = await bridge('GET', '/health');
-      if (!health?.json?.ok) throw fail(health?.json?.error?.message || health?.error || `Bridge health check failed (HTTP ${health?.status || 0}). Check the token and start-deepdock.cmd.`);
+      if (!health?.json?.ok) throw fail(health?.status === 401 ? 'Token rejected. Click Copy token in the DeepDock desktop app, then update Settings > Bridge token and save.' : health?.json?.error?.message || health?.error || `Bridge health check failed (HTTP ${health?.status || 0}). Open the DeepDock desktop app and click Start bridge.`);
       const tools = await bridge('GET', '/tools');
       if (!tools?.json?.ok || !Array.isArray(tools.json.tools)) throw fail(tools?.json?.error?.message || tools?.error || 'Bridge tool definitions are unavailable.');
       state.connected = true; state.health = health.json; state.tools = tools.json; state.bridgeError = '';
@@ -772,9 +782,10 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
       const previous = await browser.storage.local.get(['token', 'baseUrl']);
       const tokenField = document.getElementById('dshpro-token');
       const token = tokenField.value.trim() || previous.token || '';
+      if (!token) throw fail('Copy token in the DeepDock desktop app, then paste it in Bridge token above.');
       await browser.storage.local.set({ token, baseUrl, loopLimit: limit, toolResultDelaySeconds: delaySeconds, customSelectors: selectors });
       tokenField.value = '';
-      tokenField.placeholder = token ? 'Saved token · leave blank to keep it' : 'Paste the token from pair.ps1';
+      tokenField.placeholder = token ? 'Saved token · leave blank to keep it' : 'Paste the token from the DeepDock app';
       state.token = token; state.loopLimit = limit; state.toolResultDelaySeconds = delaySeconds; state.customSelectors = selectors; state.loopsLeft = limit;
       if (previous.token !== token || previous.baseUrl !== baseUrl) { state.connected = false; state.enabled = false; setStatus('Disabled'); }
       log('Settings saved.'); refreshLoops();
@@ -794,7 +805,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     renderPermissions();
     state.loopsLeft = state.loopLimit;
     // Saved credentials stay out of the host page's DOM.
-    document.getElementById('dshpro-token').placeholder = state.token ? 'Saved token · leave blank to keep it' : 'Paste the token from pair.ps1';
+    document.getElementById('dshpro-token').placeholder = state.token ? 'Saved token · leave blank to keep it' : 'Paste the token from the DeepDock app';
     document.getElementById('dshpro-baseurl').value = settings.baseUrl || 'http://127.0.0.1:8765';
     document.getElementById('dshpro-looplimit').value = state.loopLimit;
     document.getElementById('dshpro-result-delay').value = state.toolResultDelaySeconds;
@@ -806,7 +817,7 @@ export function createHarness({ browser, platform = globalThis, ports = {}, sche
     if (state.checkpoint.inProgress) log(`An unfinished task has ${state.checkpoint.iterationCount} recorded iterations. Click Resume task to continue after reviewing the chat.`);
     setStatus('Disabled');
     if (state.token) await doConnectTest();
-    else log('First use: run scripts\\pair.ps1, paste the token in Settings, then click Test connection and Enable.');
+    else log('First use: open the DeepDock desktop app, click Start bridge and Copy token. Open Settings > Bridge token in this panel, paste and Save settings, then Test connection and Enable agent. Source users can copy the token with scripts/pair.ps1.');
     if (disposed) return;
     for (const type of ['click', 'keydown', 'submit']) document.addEventListener(type, captureSubmission, true);
     // Navigation changes the persistence namespace and never carries a task into

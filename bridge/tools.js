@@ -420,7 +420,9 @@ async function toolBash(ctx, args) {
     stdout: r.stdout, stderr: r.stderr.slice(0, 8192), exitCode: r.exitCode, truncated: r.truncated, timedOut: true, timeoutMs, terminationConfirmed: r.terminationConfirmed, shell: SHELL,
   });
   if (r.exitCode !== 0) {
-    throw new ToolError('E_COMMAND_FAILED', `Command exited with code ${r.exitCode} in ${SHELL}.${!r.stdout.trim() && !r.stderr.trim() ? ' The process returned no stdout or stderr; the bridge received the exit status.' : ''}`, {
+    const escapingHint = process.platform === 'win32' && /[\t\r\b\f]/.test(args.command)
+      ? ' The command contains literal control characters. If these were intended as Windows path separators, use a raw command argument or double every backslash in JSON; tab/carriage-return/backspace/form-feed escapes change the path.' : '';
+    throw new ToolError('E_COMMAND_FAILED', `Command exited with code ${r.exitCode} in ${SHELL}.${!r.stdout.trim() && !r.stderr.trim() ? ' The process returned no stdout or stderr; the bridge received the exit status.' : ''}${escapingHint}`, {
       stdout: r.stdout, stderr: r.stderr.slice(0, 8192), exitCode: r.exitCode, truncated: r.truncated, shell: SHELL,
     });
   }

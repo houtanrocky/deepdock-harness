@@ -79,37 +79,50 @@ export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors,
   }
   function inputText(input) { return input ? (input.value ?? input.innerText ?? input.textContent ?? '') : ''; }
 
-  function assistantText(el) {
-    if (!el) return '';
+  function assistantCapture(el) {
+    if (!el) return { raw: '', renderedRanges: [] };
     // Reconstruct block boundaries while keeping PRE contents byte-for-byte. Code
     // toolbars are UI controls, not model output, and must not enter the parser.
     const clone = el.cloneNode(true);
     clone.querySelectorAll('ds_safety, ds-safety, button, [role="button"], .ds-code-block-banner, [data-testid="code-toolbar"], [data-role="reasoning"], [data-testid="reasoning"], .ds-think-content').forEach((node) => node.remove());
-    function read(node) {
+    const renderedRanges = [];
+    function read(node, offset = 0) {
       if (node.nodeType === 3) return node.nodeValue;
       if (node.nodeType !== 1) return '';
       if (node.tagName === 'BR') return '\n';
       if (node.tagName === 'PRE') return '\n' + node.textContent + '\n';
-      let text = '';
+      const block = /^(DIV|P|LI|SECTION|ARTICLE|H[1-6])$/.test(node.tagName);
+      const wrapper = /^(DSH?[_-]TOOL|DSML|FUNCTION_CALLS|TOOL_CALLS|INVOKE)$/.test(node.tagName);
+      const opening = wrapper ? '\n<' + node.tagName.toLowerCase() + '>' : block ? '\n' : '';
+      let text = opening;
       let previous;
       for (const child of node.childNodes) {
-        const part = read(child);
         // DeepSeek renders adjacent raw HTML blocks as sibling spans without a
         // separating text node. Restore that boundary instead of joining tags.
-        if (previous?.classList?.contains('ds-markdown-html') && child.classList?.contains('ds-markdown-html') && !text.endsWith('\n') && !part.startsWith('\n')) text += '\n';
+        if (previous?.classList?.contains('ds-markdown-html') && child.classList?.contains('ds-markdown-html') && !text.endsWith('\n') && !child.textContent.startsWith('\n')) text += '\n';
+        const part = read(child, offset + text.length);
         text += part; previous = child;
       }
       // Some Markdown renderers turn ds_tool text into actual custom elements.
       // Reconstruct these protocol wrappers rather than dropping them as HTML.
-      if (/^DS[_-]TOOL$/.test(node.tagName)) return '\n<' + node.tagName.toLowerCase() + '>' + text + '</' + node.tagName.toLowerCase() + '>\n';
-      if (/^(DSML|FUNCTION_CALLS|TOOL_CALLS|INVOKE)$/.test(node.tagName)) return '\n<' + node.tagName.toLowerCase() + '>' + text + '</' + node.tagName.toLowerCase() + '>\n';
-      return /^(DIV|P|LI|SECTION|ARTICLE|H[1-6])$/.test(node.tagName) ? '\n' + text + '\n' : text;
+      if (wrapper) text += '</' + node.tagName.toLowerCase() + '>\n';
+      else if (block || node.tagName === 'HR') text += '\n';
+      // Markdown source cannot be recovered from rendered headings, emphasis,
+      // links, lists, inline code or math. Record their locations; PRE was read
+      // above as literal text, including any syntax-highlighting elements.
+      if (/^(H[1-6]|EM|STRONG|B|I|DEL|S|A|IMG|UL|OL|LI|HR|BLOCKQUOTE|CODE|TABLE|MATH|MJX-CONTAINER)$/.test(node.tagName) || node.matches('.katex, .katex-display, .ds-math, [data-math]')) {
+        renderedRanges.push({ start: offset, end: offset + Math.max(1, text.length) });
+      }
+      return text;
     }
-    return read(clone).trim();
+    const text = read(clone);
+    const leading = text.length - text.trimStart().length;
+    return { raw: text.trim(), renderedRanges: renderedRanges.map(({ start, end }) => ({ start: start - leading, end: end - leading })) };
   }
+  function assistantText(el) { return assistantCapture(el).raw; }
   function assistantSnapshot() {
     const el = findLastAssistant();
-    return { el, raw: assistantText(el) };
+    return { el, ...assistantCapture(el) };
   }
   function completionIndicators(el) {
     const nodes = new Set();
@@ -192,7 +205,7 @@ export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors,
           // Completion controls can precede the final code-block render. Require
           // a terminal signal AND settled text; elapsed time alone never finishes
           // a response. Ignore panel mutations that do not change this snapshot.
-          if (candidate?.el === current.el && candidate.raw === current.raw) return;
+          if (candidate?.el === current.el && candidate.raw === current.raw && JSON.stringify(candidate.renderedRanges) === JSON.stringify(current.renderedRanges)) return;
           const incomplete = protocol.parse(current.raw).errors.some((error) => error.code !== 'E_UNSUPPORTED_TOOL_FORMAT' && /incomplete|closing|framing|placeholder|invalid raw argument name|expected a JSON object after the opening DSH marker/i.test(error.message));
           const settleMs = incomplete ? incompleteRenderGrace : 250;
           candidate = { ...current, since: Date.now() }; clearTimeout(settleTimer);
@@ -200,7 +213,7 @@ export function createDeepSeekAdapter({ platform, getCustomSelectors, selectors,
             try {
               checkRun(run);
               const latest = assistantSnapshot();
-              if (stopButtonVisible() || findContinueButton(latest.el) || latest.el !== candidate?.el || latest.raw !== candidate?.raw) { candidate = null; inspect(); return; }
+              if (stopButtonVisible() || findContinueButton(latest.el) || latest.el !== candidate?.el || latest.raw !== candidate?.raw || JSON.stringify(latest.renderedRanges) !== JSON.stringify(candidate?.renderedRanges)) { candidate = null; inspect(); return; }
               finish(null, { ...latest, completion: {
                 streamingObserved: sawStreaming, freshIndicator: Boolean(freshCompletion), chars: latest.raw.length,
                 continuationCount,

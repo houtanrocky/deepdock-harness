@@ -34,6 +34,7 @@ export interface BridgeRequest {
 }
 
 export interface PanelState {
+  token?: string;
   connected: boolean;
   enabled: boolean;
   status: string;

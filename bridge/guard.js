@@ -110,6 +110,9 @@ function validatePath(config, workspace, relPath, forWrite) {
   if (relPath.length > 1024) {
     throw new ToolError('E_ARGS_INVALID', 'path is too long');
   }
+  if (/[\x00-\x1f\x7f]/.test(relPath)) {
+    throw new ToolError('E_ARGS_INVALID', 'path contains control characters, possibly from JSON Windows path escapes. Use forward slashes or double every backslash in JSON; raw arguments preserve backslashes literally.');
+  }
   // 拒绝绝对路径与 UNC
   if (/^[a-zA-Z]:[\\/]/.test(relPath) || relPath.startsWith('\\\\') || relPath.startsWith('/')) {
     throw new ToolError('E_PATH_ESCAPE', 'Only workspace-relative paths are allowed; absolute paths are forbidden');
